@@ -1,0 +1,690 @@
+{
+  "name": "WF-MARK-01",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "e5773633-6799-4ac9-955d-6420fcb04253",
+      "name": "Schedule Hourly Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "match_threshold",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "id-2",
+              "name": "max_jobs_per_email",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "last_run_timestamp",
+              "value": "={{ $now.minus({ hours: 1 }).toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d9820c54-a91b-44c9-aded-7aae4b4c4b34",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "jobs",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            },
+            {
+              "keyName": "created_at",
+              "condition": "gt",
+              "keyValue": "={{ $('Workflow Configuration').item.json.last_run_timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "5b528213-61a3-48c7-a63b-634e9874436b",
+      "name": "Get Active Jobs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "92a7d951-d2e7-4f66-a25c-61a8a9b8ed43",
+      "name": "Get All Candidates",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "={{ $json }}",
+        "options": {}
+      },
+      "id": "8f419f7e-8180-49f2-8d40-2fc7a3dddfc8",
+      "name": "Split Jobs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": false
+        }
+      },
+      "id": "7c447b71-1bce-4718-bb18-bb80433e7599",
+      "name": "Merge Candidate with Jobs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_id",
+              "value": "={{ $('Get All Candidates').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_name",
+              "value": "={{ $('Get All Candidates').item.json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "candidate_email",
+              "value": "={{ $('Get All Candidates').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "candidate_seniority",
+              "value": "={{ $('Get All Candidates').item.json.seniority }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "candidate_stack",
+              "value": "={{ $('Get All Candidates').item.json.primary_stack }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "candidate_location",
+              "value": "={{ $('Get All Candidates').item.json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "job_id",
+              "value": "={{ $('Split Jobs').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "job_title",
+              "value": "={{ $('Split Jobs').item.json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "job_seniority",
+              "value": "={{ $('Split Jobs').item.json.seniority_level }}",
+              "type": "string"
+            },
+            {
+              "id": "id-10",
+              "name": "job_description",
+              "value": "={{ $('Split Jobs').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "id-11",
+              "name": "job_location",
+              "value": "={{ $('Split Jobs').item.json.location }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d17421db-9cd7-41db-ac56-d6c8a0f07ac9",
+      "name": "Prepare Match Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ JSON.parse($json.text).score }}",
+              "rightValue": "={{ $('Workflow Configuration').first().json.match_threshold }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "93e05bb6-d7af-40b5-b0e4-060dd3d75a7e",
+      "name": "Filter High Matches",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a48843b2-d12d-405f-b44a-0842b513f3e3",
+      "name": "Check Matches Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "candidate_id"
+            },
+            {
+              "fieldToAggregate": "candidate_name"
+            },
+            {
+              "fieldToAggregate": "candidate_email"
+            },
+            {
+              "fieldToAggregate": "={{ { job_id: $json.job_id, job_title: $json.job_title, score: JSON.parse($json.text).score, reasoning: JSON.parse($json.text).reasoning } }}",
+              "renameField": true,
+              "outputFieldName": "job_matches"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad3f61cb-b341-4b6e-a8e1-5809db8936db",
+      "name": "Group Matches by Candidate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_email",
+              "value": "={{ $json.candidate_email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_name",
+              "value": "={{ $json.candidate_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "top_matches",
+              "value": "={{ $json.job_matches.slice(0, $('Workflow Configuration').first().json.max_jobs_per_email) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-4",
+              "name": "email_subject",
+              "value": "=New Job Matches for You - {{ $json.job_matches.length }} Opportunities",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "email_html",
+              "value": "=<html><body><h2>Hi {{ $json.candidate_name }},</h2><p>We found {{ $json.job_matches.length }} job(s) that match your profile! Here are your top matches:</p>{{ $json.job_matches.slice(0, 2).map((job, i) => `<div style='margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;'><h3>${i+1}. ${job.job_title}</h3><p><strong>Match Score:</strong> ${job.score}/100</p><p><strong>Why it's a good fit:</strong> ${job.reasoning}</p></div>`).join('') }}<p>Log in to your dashboard to view all matches and apply.</p><p>Best regards,<br>Your Recruitment Team</p></body></html>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "592d7d91-89f2-470a-9434-41ceb2996580",
+      "name": "Prepare Email Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@recruiter-app.com",
+        "toEmail": "={{ $json.candidate_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "html": "={{ $json.email_html }}",
+        "options": {}
+      },
+      "id": "9eff2f57-d577-4281-84cb-2a7992f0e9d0",
+      "name": "Send Match Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2144,
+        96
+      ],
+      "webhookId": "61ac5c5a-e2e2-452d-a5e7-19c86847a575",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_job_matches",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Filter High Matches').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "job_id",
+              "fieldValue": "={{ $('Filter High Matches').item.json.job_id }}"
+            },
+            {
+              "fieldId": "match_score",
+              "fieldValue": "={{ JSON.parse($('Filter High Matches').item.json.text).score }}"
+            },
+            {
+              "fieldId": "notified_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "ecd277df-eb0e-4c39-8905-70e20b51f1eb",
+      "name": "Store Match Results",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        96
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "activity_type",
+              "fieldValue": "job_match_notification"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "=Sent {{ $('Prepare Email Content').item.json.top_matches.length }} job matches to {{ $('Prepare Email Content').item.json.candidate_name }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ { candidate_id: $('Prepare Email Content').item.json.candidate_email, match_count: $('Prepare Email Content').item.json.job_matches.length } }}"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "8d5b881d-a85b-4afb-b627-ffdb0b85868b",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        96
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert job matching AI. Score the match between this candidate and job from 0-100.\n\nCANDIDATE PROFILE:\n- Seniority: {{ $json.candidate_seniority }}\n- Primary Stack: {{ $json.candidate_stack }}\n- Location: {{ $json.candidate_location }}\n\nJOB POSTING:\n- Title: {{ $json.job_title }}\n- Seniority Level: {{ $json.job_seniority }}\n- Location: {{ $json.job_location }}\n- Description: {{ $json.job_description }}\n\nEVALUATION CRITERIA:\n1. Skill overlap (40 points): How well do the candidate's tech stack and experience match the job requirements?\n2. Seniority match (30 points): Does the candidate's seniority level align with the job level?\n3. Location compatibility (20 points): Are they in compatible locations (consider remote options)?\n4. Overall fit (10 points): Any other relevant factors\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"score\": <number 0-100>,\n  \"reasoning\": \"<brief 2-3 sentence explanation of the score>\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "667942bf-28de-4069-b388-67f9f4534c3b",
+      "name": "AI Match Scoring",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [
+        896,
+        96
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Hourly Check": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Active Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get All Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Candidates": {
+      "main": [
+        [
+          {
+            "node": "Merge Candidate with Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Candidate with Jobs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Candidate with Jobs": {
+      "main": [
+        [
+          {
+            "node": "Prepare Match Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Match Data": {
+      "main": [
+        [
+          {
+            "node": "AI Match Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Match Scoring": {
+      "main": [
+        [
+          {
+            "node": "Filter High Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Matches": {
+      "main": [
+        [
+          {
+            "node": "Check Matches Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Matches Exist": {
+      "main": [
+        [
+          {
+            "node": "Group Matches by Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group Matches by Candidate": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Content": {
+      "main": [
+        [
+          {
+            "node": "Send Match Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Match Notification": {
+      "main": [
+        [
+          {
+            "node": "Store Match Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Match Results": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "774f56b5-b39c-4ad5-879d-acea59359f08",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "y_rVVGfiFnxpMivKYMjRC",
+  "tags": []
+}
