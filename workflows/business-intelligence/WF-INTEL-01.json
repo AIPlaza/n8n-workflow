@@ -1,0 +1,737 @@
+{
+  "name": "WF-INTEL-01",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "89bd6711-3c5f-487f-9dd1-31ce1c066d3c",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "supabase_url",
+              "value": "YOUR_SUPABASE_PROJECT_URL",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "supabase_key",
+              "value": "YOUR_SUPABASE_ANON_KEY",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "smtp_host",
+              "value": "smtp.hostinger.com",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "smtp_port",
+              "value": 465,
+              "type": "number"
+            },
+            {
+              "id": "id-5",
+              "name": "smtp_user",
+              "value": "YOUR_EMAIL@yourdomain.com",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "smtp_password",
+              "value": "YOUR_SMTP_PASSWORD",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "from_email",
+              "value": "noreply@yourdomain.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2195f45-c2d4-43a7-a78d-ac359d5d7655",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const n=new Date(),s=new Date(n.setDate(n.getDate()-n.getDay()+1)),l=new Date(s);l.setDate(l.getDate()-7);return[{json:{tw:s.toISOString(),lw:l.toISOString()}}];"
+      },
+      "id": "2c112aad-eb08-468b-bc1c-a551e259a78a",
+      "name": "Date Ranges Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "id": "7af52fba-22d6-48ef-a2d8-725b694bd2e1",
+      "name": "Merge Query Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all(); const agg = items.filter(i => i.json.p !== undefined); const conv = items.find(i => i.json.sr !== undefined)?.json || {}; const prof = items.find(i => i.json.avg !== undefined)?.json || {}; const resp = items.find(i => i.json.sent !== undefined)?.json || {}; const tw = agg.filter(x => x.json.p === 'tw').reduce((s, x) => s + parseInt(x.json.c || 0), 0); const lw = agg.filter(x => x.json.p === 'lw').reduce((s, x) => s + parseInt(x.json.c || 0), 0); const tth = agg.find(x => x.json.status === 'hired')?.json.h || 0; return [{json: {tw, lw, g: lw > 0 ? ((tw - lw) / lw * 100).toFixed(1) : '0.0', tth: (tth / 24).toFixed(1), sr: (conv.sr || 0).toFixed(1), ir: (conv.ir || 0).toFixed(1), hr: (conv.hr || 0).toFixed(1), rr: (resp.rr || 0).toFixed(1), prof_avg: (prof.avg || 0).toFixed(1), prof_pct: (prof.pct || 0).toFixed(1)}}];"
+      },
+      "id": "18a4cba6-113b-443c-bae5-41b10d40f6b3",
+      "name": "Calc KPIs Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json; const b = 'https://quickchart.io/chart?c='; const chart = {type: 'bar', data: {labels: ['This Week', 'Last Week'], datasets: [{label: 'Applications', data: [d.tw, d.lw], backgroundColor: ['#4CAF50', '#2196F3']}]}}; return [{json: {...d, ac: b + encodeURIComponent(JSON.stringify(chart))}}];"
+      },
+      "id": "344c22e6-ca9c-4036-91cb-829e6aea020b",
+      "name": "Chart URLs Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "mode": "id",
+          "value": "gpt-4-turbo"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a recruitment analytics expert. Provide actionable insights based on metrics. Always respond with valid JSON only."
+            },
+            {
+              "content": "=Applications: {{ $json.tw }} ({{ $json.g }}% change), Time to Hire: {{ $json.tth }} days, Conversion Rates: Screening {{ $json.sr }}% / Interview {{ $json.ir }}% / Hire {{ $json.hr }}%, Response Rate: {{ $json.rr }}%. Provide JSON with structure: {\"trends\": \"brief summary\", \"concerns\": [\"item1\", \"item2\"], \"actions\": [\"action1\", \"action2\"]}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 350,
+          "textFormat": {
+            "textOptions": {}
+          },
+          "temperature": 0.5
+        }
+      },
+      "id": "b9eca4d8-9f08-4243-83a6-88f3c390b259",
+      "name": "OpenAI Insights",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json; let ai; try { const text = d.message?.content || d.text || d.response || ''; const match = text.match(/\\{[\\s\\S]*\\}/); ai = match ? JSON.parse(match[0]) : {trends: 'Analysis pending', concerns: [], actions: []}; } catch(e) { ai = {trends: 'Unable to generate insights', concerns: ['AI parsing failed'], actions: ['Review metrics manually']}; } return [{json: {...d, trends: ai.trends || '', concerns: ai.concerns || [], actions: ai.actions || []}}];"
+      },
+      "id": "257a25d6-f2bb-4972-90a0-c9cb7304afae",
+      "name": "Parse AI Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json; const concernsHtml = d.concerns.map(c => `<li>${c}</li>`).join(''); const actionsHtml = d.actions.map(a => `<li>${a}</li>`).join(''); const html = `<html><body style=\"font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;\"><h2 style=\"color: #333;\">📊 Weekly Recruiter Performance Report</h2><div style=\"background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;\"><h3 style=\"margin-top: 0;\">Applications Overview</h3><p style=\"font-size: 18px;\"><strong>This Week:</strong> ${d.tw} applications (<span style=\"color: ${parseFloat(d.g) >= 0 ? 'green' : 'red'};\">${d.g}%</span> vs last week)</p><img src=\"${d.ac}\" width=\"500\" style=\"max-width: 100%; height: auto;\"/></div><div style=\"background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin: 20px 0;\"><h3>Key Metrics</h3><ul style=\"line-height: 1.8;\"><li><strong>Time to Hire:</strong> ${d.tth} days</li><li><strong>Screening Rate:</strong> ${d.sr}%</li><li><strong>Interview Rate:</strong> ${d.ir}%</li><li><strong>Hire Rate:</strong> ${d.hr}%</li><li><strong>Response Rate:</strong> ${d.rr}%</li></ul></div><div style=\"background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;\"><h3>AI Insights</h3><p><strong>Trends:</strong> ${d.trends}</p>${d.concerns.length > 0 ? `<p><strong>Concerns:</strong></p><ul>${concernsHtml}</ul>` : ''}<p><strong>Recommended Actions:</strong></p><ol>${actionsHtml}</ol></div><hr style=\"margin: 30px 0;\"/><p style=\"color: #666; font-size: 12px;\">Generated automatically on ${new Date().toLocaleDateString()} | Recruiter Performance Dashboard</p></body></html>`; return [{json: {...d, html}}];"
+      },
+      "id": "894623ce-5d75-4c6b-bb7f-563611aeaccb",
+      "name": "HTML Report Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": true
+        }
+      },
+      "id": "12024532-fa47-4bc3-9f62-9bc67de5a23c",
+      "name": "Loop Over Admins",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1920,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Workflow Configuration').item.json.from_email }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=Weekly Recruiter Performance Report - {{ $now.format('MMM DD, YYYY') }}",
+        "html": "={{ $('HTML Report Code').item.json.html }}",
+        "options": {}
+      },
+      "id": "b979c5d7-ecc3-4256-ae30-4893bbb152b1",
+      "name": "SMTP Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2144,
+        240
+      ],
+      "webhookId": "2b86117a-1653-4c1c-b662-b8d79313c012",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $('Date Ranges Code').item.json.lw }}"
+            },
+            {
+              "keyName": "created_at",
+              "condition": "lt",
+              "keyValue": "={{ $('Date Ranges Code').item.json.tw }}"
+            }
+          ]
+        }
+      },
+      "id": "56a4840d-a74b-4e67-b3ff-00c12e007451",
+      "name": "Aggregate Apps Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $('Date Ranges Code').item.json.tw }}"
+            }
+          ]
+        }
+      },
+      "id": "ca16429d-55d1-4d23-b8de-426c95cc19c6",
+      "name": "Conversions Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $('Date Ranges Code').item.json.tw }}"
+            }
+          ]
+        }
+      },
+      "id": "8ae9585d-3a92-4f44-8c41-6b4b07ef14ef",
+      "name": "Top Jobs Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $('Date Ranges Code').item.json.tw }}"
+            }
+          ]
+        }
+      },
+      "id": "56486a07-a639-405e-9d74-ff53ce413d57",
+      "name": "Profile Trend Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $('Date Ranges Code').item.json.tw }}"
+            }
+          ]
+        }
+      },
+      "id": "0b3b3c1b-e7c2-434a-b909-2c54cfe8c4f6",
+      "name": "Response Rate Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        768
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "role",
+              "condition": "eq",
+              "keyValue": "admin"
+            }
+          ]
+        }
+      },
+      "id": "5f21cda8-1ca1-4a1a-bb15-f88353992be8",
+      "name": "Get Admins Query1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "report_archive",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "report_html",
+              "fieldValue": "={{ $('HTML Report Code').item.json.html }}"
+            },
+            {
+              "fieldId": "metrics_json",
+              "fieldValue": "={{ JSON.stringify($('HTML Report Code').item.json) }}"
+            }
+          ]
+        }
+      },
+      "id": "0a5af6c1-25a8-44d3-be6e-fed890c00f61",
+      "name": "Store Archive Insert1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        432
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "activity_type",
+              "fieldValue": "report_sent"
+            },
+            {
+              "fieldId": "activity_date",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ JSON.stringify({recipient: $('Loop Over Admins').item.json.email, report_week: $('Date Ranges Code').item.json.tw}) }}"
+            }
+          ]
+        }
+      },
+      "id": "4ced4873-74e1-4633-9a16-e0f086b6417c",
+      "name": "Log Activity Insert1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        432
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Date Ranges Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date Ranges Code": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Apps Query1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Conversions Query1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Top Jobs Query1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Profile Trend Query1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Response Rate Query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Query Results": {
+      "main": [
+        [
+          {
+            "node": "Calc KPIs Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calc KPIs Code": {
+      "main": [
+        [
+          {
+            "node": "Chart URLs Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chart URLs Code": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Insights": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Code": {
+      "main": [
+        [
+          {
+            "node": "HTML Report Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Report Code": {
+      "main": [
+        [
+          {
+            "node": "Get Admins Query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Admins": {
+      "main": [
+        [
+          {
+            "node": "Store Archive Insert1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SMTP Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMTP Send Email": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Admins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Apps Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge Query Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversions Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge Query Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Top Jobs Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge Query Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Profile Trend Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge Query Results",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Response Rate Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge Query Results",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Get Admins Query1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Admins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Archive Insert1": {
+      "main": [
+        [
+          {
+            "node": "Log Activity Insert1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "10826f7a-03e9-424d-8bd8-e20bdde13d21",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "KMKMtBaLslsoOkU31noIy",
+  "tags": []
+}
