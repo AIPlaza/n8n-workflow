@@ -1,0 +1,700 @@
+{
+  "name": "WF-FOLLOWUP-01",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "72eaa3df-e07b-4b16-b819-44a6dcb3d69c",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1504,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "recruiter_email",
+              "value": "recruiter@company.com",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "batch_size",
+              "value": 5,
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "rate_limit_per_min",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28db665b-1c50-48a5-954f-a6b3d3b26b59",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "__CUSTOM_API_CALL__"
+      },
+      "id": "2b895578-4cc9-4ace-923a-86ca4e46074c",
+      "name": "Find Stale Candidates",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        552
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidates = $input.all().map(item => item.json);\n\nconst seg_7 = candidates.filter(c => c.days_inactive >= 7 && c.days_inactive < 14);\nconst seg_14 = candidates.filter(c => c.days_inactive >= 14 && c.days_inactive < 30);\nconst seg_30 = candidates.filter(c => c.days_inactive >= 30);\n\nconst allSegments = [\n  ...seg_7.map(c => ({...c, segment: '7-13'})),\n  ...seg_14.map(c => ({...c, segment: '14-29'})),\n  ...seg_30.map(c => ({...c, segment: '30+'}))\n];\n\nreturn allSegments.map(item => ({json: item}));"
+      },
+      "id": "19f45122-9f29-4a99-b0ee-e9d25f39945a",
+      "name": "Segment by Inactivity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": "={{ $('Workflow Configuration').item.json.batch_size }}",
+        "options": {
+          "reset": true
+        }
+      },
+      "id": "5c1ed1e8-5a5e-4259-96f5-ea17e4862c71",
+      "name": "Loop Each Segment",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -608,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "prompt",
+              "value": "=Candidate: {{ $json.name }}, applied for {{ $json.job_title }} {{ $json.days_inactive }} days ago\nStatus: {{ $json.status }}\nLast activity: {{ $json.last_activity || 'none' }}\nProfile: {{ $json.seniority || 'N/A' }} {{ $json.primary_stack || 'N/A' }} developer\nDays inactive: {{ $json.days_inactive }}\n\nWrite re-engagement email body:\n- If 7-13 days: Gentle check-in, ask if still interested\n- If 14-29 days: Offer help, share resources, mention similar roles\n- If 30+ days: Final friendly attempt, ask about other opportunities\n\nMax 100 words. Plain text only.",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "application_id",
+              "value": "={{ $json.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "days_inactive",
+              "value": "={{ $json.days_inactive }}",
+              "type": "number"
+            },
+            {
+              "id": "id-5",
+              "name": "segment",
+              "value": "={{ $json.segment }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "job_title",
+              "value": "={{ $json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "timezone",
+              "value": "={{ $json.timezone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e9301f-9326-4848-8740-b4dce090b208",
+      "name": "Prepare AI Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-3.5-turbo"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 200,
+          "temperature": 0.8
+        }
+      },
+      "id": "84176cc9-d6df-42bf-aed0-a275e6d8f094",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -88,
+        776
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a recruiter writing warm, professional re-engagement emails. Be concise, friendly, not pushy."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "920d9a76-a9d5-4375-9d5d-86d6c399f2b6",
+      "name": "Generate AI Message",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -160,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $input.item.json.days_inactive;\nconst jobTitle = $input.item.json.job_title;\nconst aiResponse = $input.item.json.response || $input.item.json.text || '';\n\nconst subject = d < 14 \n  ? `Quick check-in about your ${jobTitle} application`\n  : d < 30 \n    ? `Still interested in ${jobTitle}?`\n    : `Following up on your application`;\n\nreturn {\n  json: {\n    subject: subject,\n    body: aiResponse,\n    candidate_id: $input.item.json.candidate_id,\n    application_id: $input.item.json.application_id,\n    email: $input.item.json.email,\n    name: $input.item.json.name,\n    days_inactive: d,\n    segment: $input.item.json.segment,\n    timezone: $input.item.json.timezone\n  }\n};"
+      },
+      "id": "48f2c73a-96aa-46db-8cdd-2dd445dcc712",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const tz = $input.item.json.timezone || 'UTC';\nconst now = new Date();\nconst local = new Date(now.toLocaleString('en-US', { timeZone: tz }));\nconst h = local.getHours();\nconst d = local.getDay();\n\nconst goodTime = h >= 10 && h <= 14 && d >= 2 && d <= 4;\n\nconst retry_at = !goodTime ? new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString() : null;\n\nreturn {\n  json: {\n    should_send: goodTime,\n    candidate_id: $input.item.json.candidate_id,\n    application_id: $input.item.json.application_id,\n    retry_at: retry_at,\n    subject: $input.item.json.subject,\n    body: $input.item.json.body,\n    email: $input.item.json.email,\n    name: $input.item.json.name,\n    days_inactive: $input.item.json.days_inactive,\n    segment: $input.item.json.segment\n  }\n};"
+      },
+      "id": "9e551578-34f9-4c98-996b-768f4c24c226",
+      "name": "Check Send Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.should_send }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1d7b204f-bcfe-4dbc-8545-5addcf2ad886",
+      "name": "Should Send Now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        552
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "email_queue",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $json.candidate_id }}"
+            },
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $json.application_id }}"
+            },
+            {
+              "fieldId": "email_type",
+              "fieldValue": "re_engagement"
+            },
+            {
+              "fieldId": "scheduled_for",
+              "fieldValue": "={{ $json.retry_at }}"
+            },
+            {
+              "fieldId": "sent",
+              "fieldValue": "false"
+            }
+          ]
+        }
+      },
+      "id": "c8622813-4941-461a-a376-ff831aa7b248",
+      "name": "Queue for Later",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        864,
+        456
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.candidate_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tags",
+              "fieldValue": "={{ `COALESCE(tags, '{}'::jsonb) || jsonb_build_object('re_engagement_sent_${$json.application_id}', NOW())` }}"
+            }
+          ]
+        }
+      },
+      "id": "a8662405-1979-492c-819f-762400311703",
+      "name": "Update Candidate Tags",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        552
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $json.candidate_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "re_engagement_sent"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify({ days_inactive: $json.days_inactive, segment: $json.segment, email_sent: $json.should_send }) }}"
+            }
+          ]
+        }
+      },
+      "id": "93f5e873-7bea-4e19-9852-43e4abeb056b",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        676
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "d1f863d0-4670-4763-bd2b-a3a65d256e95",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(item => item.json);\n\nconst totalCandidates = items.length;\nconst emailsSent = items.filter(i => i.should_send === true).length;\nconst emailsQueued = items.filter(i => i.should_send === false).length;\n\nconst seg7 = items.filter(i => i.segment === '7-13').length;\nconst seg14 = items.filter(i => i.segment === '14-29').length;\nconst seg30 = items.filter(i => i.segment === '30+').length;\n\nconst report = `Daily Re-engagement Report\\n` +\n  `========================\\n\\n` +\n  `Total Candidates Processed: ${totalCandidates}\\n` +\n  `Emails Sent: ${emailsSent}\\n` +\n  `Emails Queued: ${emailsQueued}\\n\\n` +\n  `Breakdown by Segment:\\n` +\n  `- 7-13 days inactive: ${seg7}\\n` +\n  `- 14-29 days inactive: ${seg14}\\n` +\n  `- 30+ days inactive: ${seg30}\\n\\n` +\n  `Execution completed at: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    report: report,\n    totalCandidates: totalCandidates,\n    emailsSent: emailsSent,\n    emailsQueued: emailsQueued\n  }\n}];"
+      },
+      "id": "cdf27343-a5b3-47fc-a40f-b56f84f9b8b1",
+      "name": "Format Admin Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Workflow Configuration').item.json.recruiter_email }}",
+        "toEmail": "admin@company.com",
+        "subject": "Daily Candidate Re-engagement Report",
+        "emailFormat": "text",
+        "text": "={{ $json.report }}",
+        "options": {}
+      },
+      "id": "7261fb39-7043-4387-bbea-32edae3b557b",
+      "name": "Send Admin Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        256
+      ],
+      "webhookId": "98668ddc-7005-43e7-ba00-3f11dfb1161f",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Workflow Configuration').item.json.recruiter_email }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "5bf3ccfb-f6cc-4c99-a4b1-8fb165721414",
+      "name": "Send Email1",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        864,
+        648
+      ],
+      "webhookId": "91eb8c94-0153-4e06-96f6-8fb5d882f141",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Find Stale Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Stale Candidates": {
+      "main": [
+        [
+          {
+            "node": "Segment by Inactivity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment by Inactivity": {
+      "main": [
+        [
+          {
+            "node": "Loop Each Segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Each Segment": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate AI Message",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Message": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check Send Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Send Time": {
+      "main": [
+        [
+          {
+            "node": "Should Send Now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Now?": {
+      "main": [
+        [
+          {
+            "node": "Send Email1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Queue for Later",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue for Later": {
+      "main": [
+        [
+          {
+            "node": "Update Candidate Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Candidate Tags": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Activity": {
+      "main": [
+        [
+          {
+            "node": "Loop Each Segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Format Admin Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Admin Report": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email1": {
+      "main": [
+        [
+          {
+            "node": "Update Candidate Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "acb2db78-05c8-4cf4-9490-9c0a4f43e9fd",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "lIpb1QMy6AjL1AKUwuTKQ",
+  "tags": []
+}
