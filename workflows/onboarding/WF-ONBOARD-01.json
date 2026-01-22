@@ -1,0 +1,761 @@
+{
+  "name": "WF-ONBOARD-01",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "profile-completion-check",
+        "options": {}
+      },
+      "id": "1a36ff8c-8e13-48a6-95c6-fda8211d4ea5",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        192
+      ],
+      "webhookId": "05447786-1e7d-4387-8ffc-e6dc56108d61"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_id",
+              "value": "={{ $json.body.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "trigger_type",
+              "value": "={{ $json.body.trigger_type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cee115e0-ac3e-4fb2-b39a-5cc55af788bf",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "64ca2d68-15bc-4faa-aabd-da5a7468e204",
+      "name": "Fetch Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Fetch Profile').item.json;\nconst req = ['name', 'email', 'seniority', 'primary_stack'];\nconst imp = ['location_country', 'skills', 'bio', 'years_experience', 'availability'];\nconst opt = ['github_url', 'linkedin_url'];\nlet s = 0, missing = [];\nreq.forEach(f => { p[f] ? s += 10 : missing.push(f) });\nimp.forEach(f => { p[f] ? s += 8 : missing.push(f) });\nopt.forEach(f => { p[f] ? s += 10 : missing.push(f) });\nreturn [{ json: { completion_score: s, missing_fields: missing, tier: s >= 75 ? 100 : s >= 50 ? 75 : s >= 25 ? 50 : 25 } }];"
+      },
+      "id": "6e7beda7-f749-4b9d-9b2f-eeb948ae73bb",
+      "name": "Calculate Completion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidate_badges",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "4bccc4a0-f54f-4711-8001-6d213985a1ba",
+      "name": "Fetch Existing Badges",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "13531f72-3bfc-4ef5-ab27-1b4ecd97efb7",
+      "name": "Check Applications",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        384
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const badges = [];\nconst ex = $('Fetch Existing Badges').all().map(b => b.json.badge_type);\nconst s = $('Calculate Completion').item.json.completion_score;\nconst p = $('Fetch Profile').item.json;\nconst appsData = $('Check Applications').item.json;\nconst apps = appsData.count || 0;\nif (s >= 25 && !ex.includes('profile_pioneer')) badges.push('profile_pioneer');\nif (s >= 50 && p.skills && !ex.includes('detail_master')) badges.push('detail_master');\nif (s >= 75 && (p.github_url || p.linkedin_url) && !ex.includes('portfolio_pro')) badges.push('portfolio_pro');\nif (s >= 100 && apps >= 1 && !ex.includes('elite_candidate')) badges.push('elite_candidate');\nreturn [{ json: { new_badges: badges } }];"
+      },
+      "id": "413aa2de-8b97-4672-9a62-bd00ecbd3a98",
+      "name": "Determine New Badges",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Calculate Completion').item.json.completion_score }}",
+              "rightValue": "20",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bdfc4acc-6c8a-4cbc-898b-9bdf7facd37c",
+      "name": "Check Score for AI",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-3.5-turbo"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 250,
+          "temperature": 0.7
+        }
+      },
+      "id": "f27143c5-a64c-458b-b951-d55921a3530b",
+      "name": "OpenAI GPT-3.5",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        744,
+        540
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let suggestions;\ntry {\n  const aiResponse = $('AI Suggestions Generator').item.json.output || $('AI Suggestions Generator').item.json.text || '';\n  const jsonMatch = aiResponse.match(/\\[.*\\]/s);\n  if (jsonMatch) {\n    suggestions = JSON.parse(jsonMatch[0]);\n  } else {\n    suggestions = ['Complete missing fields', 'Add skills details', 'Link GitHub/LinkedIn'];\n  }\n} catch (error) {\n  suggestions = ['Complete missing fields', 'Add skills details', 'Link GitHub/LinkedIn'];\n}\nreturn [{ json: { suggestions } }];"
+      },
+      "id": "7233c163-5505-487e-afa2-b8d01a8b05bd",
+      "name": "Parse Suggestions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        316
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Determine New Badges').item.json.new_badges.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3e95eea4-3d65-4cdd-81bd-0844b03cdd4b",
+      "name": "Check New Badges",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_badges",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "badge_type",
+              "fieldValue": "={{ $json.badge }}"
+            },
+            {
+              "fieldId": "earned_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "displayed",
+              "fieldValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "49e5ceb7-fd2b-4d73-aa22-6d7ecfd8adb4",
+      "name": "Award Badges",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        120
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "completion_score",
+              "fieldValue": "={{ $('Calculate Completion').item.json.completion_score }}"
+            },
+            {
+              "fieldId": "last_profile_update",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "23fee829-99c9-4471-b113-ad1405faf815",
+      "name": "Update Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const profile = $('Fetch Profile').item.json;\nconst score = $('Calculate Completion').item.json.completion_score;\nconst newBadges = $('Determine New Badges').item.json.new_badges;\nconst suggestions = $('Parse Suggestions').item.json?.suggestions || $('Fallback Suggestions').item.json?.suggestions || [];\n\nconst badgeConfig = {\n  profile_pioneer: { name: 'Profile Pioneer', icon: '🌱', desc: '25% complete!' },\n  detail_master: { name: 'Detail Master', icon: '⚡', desc: '50% complete!' },\n  portfolio_pro: { name: 'Portfolio Pro', icon: '🎯', desc: '75% complete!' },\n  elite_candidate: { name: 'Elite Candidate', icon: '👑', desc: '100% complete!' },\n  fast_responder: { name: 'Fast Responder', icon: '🚀', desc: 'Quick responder!' }\n};\n\nconst shouldSend = newBadges.length > 0 || score > 0;\n\nlet badgesHtml = '';\nif (newBadges.length > 0) {\n  badgesHtml = '<h2>🎉 New Badges Earned!</h2><ul>';\n  newBadges.forEach(badge => {\n    const config = badgeConfig[badge];\n    badgesHtml += `<li>${config.icon} <strong>${config.name}</strong> - ${config.desc}</li>`;\n  });\n  badgesHtml += '</ul>';\n}\n\nlet tipsHtml = '<h2>💡 AI Career Tips</h2><ul>';\nsuggestions.forEach(tip => {\n  tipsHtml += `<li>${tip}</li>`;\n});\ntipsHtml += '</ul>';\n\nconst progressBar = `<div style=\"background:#e0e0e0;border-radius:10px;height:30px;width:100%;\"><div style=\"background:#4caf50;height:30px;width:${score}%;border-radius:10px;text-align:center;line-height:30px;color:white;font-weight:bold;\">${score}%</div></div>`;\n\nconst htmlBody = `\n<html>\n<body style=\"font-family:Arial,sans-serif;padding:20px;\">\n  <h1>Profile Completion Update</h1>\n  <p>Hi ${profile.name || 'there'},</p>\n  <p>Your profile is now <strong>${score}% complete</strong>!</p>\n  ${progressBar}\n  ${badgesHtml}\n  ${tipsHtml}\n  <p><a href=\"https://yourapp.com/profile\" style=\"background:#2196F3;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;\">Complete Your Profile</a></p>\n</body>\n</html>\n`;\n\nconst subject = newBadges.length > 0 ? `🎉 New Badge${newBadges.length > 1 ? 's' : ''} Earned! Profile ${score}% Complete` : `Profile Update: ${score}% Complete`;\n\nreturn [{ json: { subject, html_body: htmlBody, should_send: shouldSend } }];"
+      },
+      "id": "dc072c7c-f938-4f88-881b-dc985e49ed47",
+      "name": "Prepare Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Prepare Email').item.json.should_send }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b7448c54-8e81-4721-ac96-efa40e0afe4b",
+      "name": "Check Should Send Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2144,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@yourapp.com",
+        "toEmail": "={{ $('Fetch Profile').item.json.email }}",
+        "subject": "={{ $('Prepare Email').item.json.subject }}",
+        "html": "={{ $('Prepare Email').item.json.html_body }}",
+        "options": {}
+      },
+      "id": "898ded3e-86fd-41b5-9a1f-b122c2dd81a5",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2368,
+        120
+      ],
+      "webhookId": "6eaf0e5f-8605-4ea0-a06a-37270440f92c",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "profile_completion_check"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ { completion_score: $('Calculate Completion').item.json.completion_score, new_badges: $('Determine New Badges').item.json.new_badges, suggestions: $('Parse Suggestions').item.json?.suggestions || $('Fallback Suggestions').item.json?.suggestions || [] } }}"
+            }
+          ]
+        }
+      },
+      "id": "08668e3c-5618-48b6-aeb6-47348203a285",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, completion_score: $('Calculate Completion').item.json.completion_score, new_badges: $('Determine New Badges').item.json.new_badges, suggestions: $('Parse Suggestions').item.json?.suggestions || $('Fallback Suggestions').item.json?.suggestions || [], email_sent: $('Prepare Email').item.json.should_send } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7cf497b7-6004-4c9a-8b8a-300261a1d663",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2816,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { suggestions: ['Complete missing fields', 'Add skills details', 'Link GitHub/LinkedIn'] } }];"
+      },
+      "id": "d56329eb-48db-46e0-8c7c-2b94a94bdb08",
+      "name": "Fallback Suggestions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        68
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Profile: {{ $('Fetch Profile').item.json.seniority }}, {{ $('Fetch Profile').item.json.primary_stack }}, {{ $('Calculate Completion').item.json.completion_score }}%\nMissing: {{ $('Calculate Completion').item.json.missing_fields.join(', ') }}\nProvide 3 suggestions as JSON array: [\"tip1\",\"tip2\",\"tip3\"]",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a career coach. Be concise and actionable."
+            }
+          ]
+        }
+      },
+      "id": "13559ebc-9d78-402b-8e0b-7beb8bb31018",
+      "name": "AI Suggestions Generator",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        672,
+        316
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Fetch Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Profile": {
+      "main": [
+        [
+          {
+            "node": "Calculate Completion",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Existing Badges",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Completion": {
+      "main": [
+        [
+          {
+            "node": "Determine New Badges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing Badges": {
+      "main": [
+        [
+          {
+            "node": "Determine New Badges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Applications": {
+      "main": [
+        [
+          {
+            "node": "Determine New Badges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine New Badges": {
+      "main": [
+        [
+          {
+            "node": "Check Score for AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Score for AI": {
+      "main": [
+        [
+          {
+            "node": "AI Suggestions Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Check New Badges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Check New Badges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check New Badges": {
+      "main": [
+        [
+          {
+            "node": "Award Badges",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Award Badges": {
+      "main": [
+        [
+          {
+            "node": "Update Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Profile": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email": {
+      "main": [
+        [
+          {
+            "node": "Check Should Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Should Send Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Activity": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-3.5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Suggestions Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Suggestions Generator": {
+      "main": [
+        [
+          {
+            "node": "Parse Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a16a4b8c-4ffe-4b02-9f0e-57408defc6bc",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "rPcg8fO8HGGD8kxz6NeyV",
+  "tags": []
+}
