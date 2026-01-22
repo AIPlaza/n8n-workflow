@@ -44,7 +44,7 @@ This document outlines a comprehensive automation architecture for a recruitment
 
 | Metric | Value | Details |
 |--------|-------|---------|
-| **Total Estimated Time** | 16-22 hours | For all 7 workflows |
+| **Total Estimated Time** | 1-2 hours | For all 7 workflows |
 | **AI Integration Cost** | ~$50-100/mo | OpenAI API estimated |
 | **Expected ROI** | 10x+ | Time saved vs manual processes |
 | **Critical Workflows** | 2 | Must-have base requirements |
