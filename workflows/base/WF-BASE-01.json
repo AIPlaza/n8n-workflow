@@ -1,0 +1,331 @@
+{
+  "name": "WF-BASE-01",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/application-status-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dd24157c-44f3-4e50-a8bd-8cc260c1457b",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1008,
+        32
+      ],
+      "webhookId": "174d1541-fc7d-45cb-91dd-a86129e333ab"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_id",
+              "value": "={{ $json.body.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "job_title",
+              "value": "={{ $json.body.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "new_status",
+              "value": "={{ $json.body.new_status }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "next_step",
+              "value": "={{ $json.body.next_step }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "application_id",
+              "value": "={{ $json.body.application_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4d5f754d-d166-4485-9c30-8e7742161273",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -784,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "efa258bd-4eb5-4403-bd23-2619b7a75c8c",
+      "name": "Get Candidate Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        32
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_name",
+              "value": "={{ $('Get Candidate Details').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_email",
+              "value": "={{ $('Get Candidate Details').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "subject",
+              "value": "=Application Update: {{ $('Workflow Configuration').item.json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "html",
+              "value": "=<html><body><p>Hi {{ $('Get Candidate Details').item.json.name }},</p><p>Your application for <strong>{{ $('Workflow Configuration').item.json.job_title }}</strong> is now <strong>{{ $('Workflow Configuration').item.json.new_status }}</strong>.</p><p><strong>Next step:</strong> {{ $('Workflow Configuration').item.json.next_step }}</p><p>Best regards,<br>The Recruitment Team</p></body></html>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9d7f59b8-2d32-441d-bf0f-32c2eef0de83",
+      "name": "Format Email Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -336,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "management@technoplay.io",
+        "toEmail": "={{ $('Format Email Content').item.json.candidate_email }}",
+        "subject": "={{ $('Format Email Content').item.json.subject }}",
+        "html": "={{ $('Format Email Content').item.json.html }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "e2c8e8cd-c53f-4a92-8557-3c7181717ef2",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -112,
+        32
+      ],
+      "webhookId": "df6cbe72-ef6a-45d7-9a57-dadbceba7ef6",
+      "credentials": {
+        "smtp": {
+          "id": "gdEo6xe98kzMoCiy",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.application_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "email_sent"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "success"
+            },
+            {
+              "fieldId": "recipient_email",
+              "fieldValue": "={{ $('Format Email Content').item.json.candidate_email }}"
+            }
+          ]
+        }
+      },
+      "id": "9512b7e4-beb7-4187-b29f-caefbdb13f79",
+      "name": "Log Activity Success",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -64
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.application_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "email_failed"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "={{ $json.error }}"
+            },
+            {
+              "fieldId": "recipient_email",
+              "fieldValue": "={{ $('Format Email Content').item.json.candidate_email }}"
+            }
+          ]
+        }
+      },
+      "id": "e540f278-1f7e-4ee0-8752-55fa798569c2",
+      "name": "Log Activity Failed",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        112,
+        128
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Candidate Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Details": {
+      "main": [
+        [
+          {
+            "node": "Format Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Content": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Activity Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Activity Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f86d3c10-bb11-497b-ba9d-0abd3ac3f6f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "mRmRsShSKe9lFIYy-jBJw",
+  "tags": []
+}

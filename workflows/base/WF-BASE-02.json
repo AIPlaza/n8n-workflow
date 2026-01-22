@@ -1,0 +1,611 @@
+{
+  "name": "WF-BASE-02",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-candidate-summary",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1e23c2a8-e1dc-4f56-9255-410ec98f277d",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        -48
+      ],
+      "webhookId": "b0ffe94d-d9db-468c-9a29-3ffcd3a74cff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidate_id",
+              "value": "={{ $json.body.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "cache_max_age_days",
+              "value": 7,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "82c84164-ffdb-4b9b-9996-cd69920ae109",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -736,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidate_summaries",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "c1766ad3-1480-4f89-b1fe-779a1f4be177",
+      "name": "Check Cached Summary",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -48
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.generated_at }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ new Date() - new Date($json.generated_at) < 7 * 24 * 60 * 60 * 1000 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f5cc381a-f589-4e87-83a3-850cc48d3cd3",
+      "name": "Is Cache Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -288,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "4f9f50d4-e007-40e9-91aa-a719d6a8caa1",
+      "name": "Fetch Candidate Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "d7c96d49-31aa-4897-9c5d-51497d0284cb",
+      "name": "Fetch Applications",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "activity_logs",
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "76183b75-3c85-4cd5-a937-03dc4eb06fcd",
+      "name": "Fetch Recent Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const profile = $('Fetch Candidate Profile').first().json; const applications = $('Fetch Applications').all().map(i => i.json); const activities = $('Fetch Recent Activity').all().map(i => i.json); const applicationCount = applications.length; const statuses = applications.map(a => a.status).join(', '); const activitySummary = activities.map(a => `${a.type} at ${a.created_at}`).join('; '); const prompt = `Analyze this software developer candidate:\n\nProfile: ${profile.name}, ${profile.seniority}, ${profile.primary_stack}, ${profile.location_country}\nApplications: ${applicationCount} total, current status: ${statuses}\nActivity: ${activitySummary}\n\nProvide in JSON:\n{\n  \"summary\": \"2-sentence overview\",\n  \"strengths\": [\"strength1\", \"strength2\", \"strength3\"],\n  \"concerns\": [\"concern1\", \"concern2\"],\n  \"recommended_roles\": [\"role_type1\", \"role_type2\"],\n  \"urgency_score\": 1-10,\n  \"fit_for_us_clients\": \"high/medium/low\"\n}\n\nRespond with ONLY the JSON object, no markdown formatting.`; return [{ json: { prompt } }];"
+      },
+      "id": "00fdc0a2-b2f5-44a8-9713-cd21bfec8ddb",
+      "name": "Prepare AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try { const response = $input.first().json; let content = response.choices[0].message.content; content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim(); const summary = JSON.parse(content); const required = ['summary', 'strengths', 'concerns', 'recommended_roles', 'urgency_score', 'fit_for_us_clients']; for (const field of required) { if (!summary[field]) { throw new Error(`Missing required field: ${field}`); } } return [{ json: { summary } }]; } catch (error) { return [{ json: { error: 'AI_PARSE_FAILED', message: error.message } }]; }"
+      },
+      "id": "6eaff81c-b707-48e7-9ea3-f13e89f6f1bc",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_summaries",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "summary_json",
+              "fieldValue": "={{ $json.summary }}"
+            },
+            {
+              "fieldId": "generated_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "a8d32e41-d62d-4a66-ba13-57d8b8646481",
+      "name": "Store Summary",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "ai_summary_generated"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ { model: 'gpt-4-turbo' } }}"
+            }
+          ]
+        }
+      },
+      "id": "87538a30-3452-499f-b944-7faf0660d956",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        -144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $('Workflow Configuration').item.json.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "summary",
+              "value": "={{ $('Parse AI Response').item.json.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dc15edc2-e7d7-45a8-be19-fd7d9db2de40",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7a25b139-436d-4ef5-8397-f2e498bc2408",
+      "name": "Return Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1952,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $('Workflow Configuration').item.json.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "summary",
+              "value": "={{ $json.summary_json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "cached",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bb100546-ea35-4a19-bf11-c0cf9a1859d9",
+      "name": "Format Cached Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"gpt-4-turbo\", \"temperature\": 0.3, \"max_tokens\": 800, \"messages\": [ { \"role\": \"system\", \"content\": \"You are a recruitment analyst. Provide concise, actionable candidate assessments in valid JSON format only.\" }, { \"role\": \"user\", \"content\": \"={{ $('Prepare AI Prompt').item.json.prompt }}\" } ] }",
+        "options": {}
+      },
+      "id": "6bccd037-6beb-4538-a143-3791332274d5",
+      "name": "OpenAI API Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        832,
+        -144
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check Cached Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Cached Summary": {
+      "main": [
+        [
+          {
+            "node": "Is Cache Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Cache Valid": {
+      "main": [
+        [
+          {
+            "node": "Format Cached Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Candidate Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Candidate Profile": {
+      "main": [
+        [
+          {
+            "node": "Fetch Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Applications": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recent Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recent Activity": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI API Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Store Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Summary": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Activity": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cached Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API Call": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6e9d5fad-ad0d-45b6-ab05-2eb091dfe854",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "Y0oJeHzY8Y9m0ajo5T5IQ",
+  "tags": []
+}
