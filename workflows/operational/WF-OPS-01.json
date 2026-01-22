@@ -1,0 +1,773 @@
+{
+  "name": "WF-OPS-01",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "interview-scheduling-webhook",
+        "options": {}
+      },
+      "id": "76d0fd05-c3cb-4884-8d84-be0cf0c63b5c",
+      "name": "Supabase Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2144,
+        -1920
+      ],
+      "webhookId": "9a3bd601-c061-46eb-ab6d-08a2d71ea56a"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "application_id",
+              "value": "={{ $json.body.record.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.body.record.candidate_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "status",
+              "value": "={{ $json.body.record.status }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "position_title",
+              "value": "={{ $json.body.record.position_title || 'Position' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "interviewer_email",
+              "value": "PLACEHOLDER_INTERVIEWER_EMAIL@company.com",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "search_window_days",
+              "value": 7,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac0ae78c-38e9-4f06-bbbd-52c8c2b11b71",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1920,
+        -1920
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Get Application Details').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "45e8afda-1f6c-4757-8e15-07b846d19bf0",
+      "name": "Get Candidate Info",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1472,
+        -1920
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "applications",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Workflow Configuration').item.json.application_id }}"
+            }
+          ]
+        }
+      },
+      "id": "d30918f7-d141-4661-acd4-ab685d39c935",
+      "name": "Get Application Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1696,
+        -1920
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "2555e780-3111-4667-ad77-5f79198f65d2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1116,
+        -1488
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "kennedy.dulceexpreso@gmail.com",
+          "mode": "list",
+          "cachedResultName": "kennedy.dulceexpreso@gmail.com"
+        },
+        "timeMin": "={{ new Date().toISOString() }}",
+        "timeMax": "={{ new Date(Date.now() + $('Workflow Configuration').item.json.search_window_days * 24 * 60 * 60 * 1000).toISOString() }}",
+        "options": {}
+      },
+      "id": "c9222eff-5829-4cb5-87c7-ccfb0fc11d0a",
+      "name": "Google Calendar Tool",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -1176,
+        -1696
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "95oZDcBXS0PLeApc",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an interview scheduling assistant. Your task is to find optimal meeting times for a job interview.\n\nYour goal:\n1. Use the Google Calendar tool to check availability for the next 7 days\n2. Find 3-5 available 1-hour time slots during business hours (9 AM - 5 PM in the interviewer's timezone)\n3. Prefer slots that are at least 2 days in the future to give the candidate time to prepare\n4. Avoid slots on weekends\n5. Return the slots in a structured format\n\nIMPORTANT OUTPUT FORMAT:\nYou MUST return your response as a JSON object with this exact structure:\n{\n  \"available_slots\": [\n    {\n      \"start_time\": \"ISO 8601 datetime\",\n      \"end_time\": \"ISO 8601 datetime\",\n      \"date_formatted\": \"Human-readable format like 'Monday, January 15, 2025 at 2:00 PM'\"\n    }\n  ],\n  \"slots_found\": true or false\n}\n\nIf no suitable slots are found, set slots_found to false and return an empty available_slots array."
+        }
+      },
+      "id": "43bc49d2-ed6d-4753-9986-1825dc700329",
+      "name": "Calendar Availability Check",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1248,
+        -1920
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"available_slots\": [\n    {\n      \"start_time\": \"2025-01-15T10:00:00\",\n      \"end_time\": \"2025-01-15T11:00:00\",\n      \"date_formatted\": \"Wednesday, January 15, 2025 at 10:00 AM\"\n    }\n  ],\n  \"slots_found\": true\n}",
+        "autoFix": true
+      },
+      "id": "ffb0997a-44e8-40e2-8244-b3049dabbe08",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1048,
+        -1696
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "slots_found",
+              "value": "={{ $json.slots_found }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "available_slots",
+              "value": "={{ $json.available_slots }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "candidate_email",
+              "value": "={{ $('Get Candidate Info').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "candidate_name",
+              "value": "={{ $('Get Candidate Info').item.json.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "position_title",
+              "value": "={{ $('Workflow Configuration').item.json.position_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "application_id",
+              "value": "={{ $('Workflow Configuration').item.json.application_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "01662658-43e2-49e2-b83a-2d4031245311",
+      "name": "Format Time Slots",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -680,
+        -1920
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.slots_found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1c7ed350-3d2a-4b1e-806b-739e6ca46621",
+      "name": "Check Time Slots Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -456,
+        -1920
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "email_subject",
+              "value": "={{ 'Interview Invitation - ' + $json.position_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "email_body",
+              "value": "={{ `Dear ${$json.candidate_name},\n\nThank you for your interest in the ${$json.position_title} position. We would like to invite you to an interview.\n\nWe have identified the following available time slots. Please reply to this email with your preferred time:\n\n` + $json.available_slots.map((slot, i) => `${i + 1}. ${slot.date_formatted}`).join('\\n') + `\n\nInterview Details:\n- Duration: 1 hour\n- Format: Video call via Google Meet (link will be sent upon confirmation)\n\nPlease confirm your availability at your earliest convenience.\n\nBest regards,\nRecruitment Team` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6d977fa7-6eda-4294-a8ee-306e00cb3c0f",
+      "name": "Prepare Scheduling Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -232,
+        -2016
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "emailType": "text",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "id": "b0a702c8-3db1-4855-bf40-77cd53bfb8b5",
+      "name": "Send Scheduling Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -8,
+        -2016
+      ],
+      "webhookId": "dac2aacc-1cb0-4d08-a962-97be9d9ba26e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YKmdwWAILz46yMv5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "kennedy.dulceexpreso@gmail.com",
+          "mode": "list",
+          "cachedResultName": "kennedy.dulceexpreso@gmail.com"
+        },
+        "start": "={{ $('Format Time Slots').item.json.available_slots[0].start_time }}",
+        "end": "={{ $('Format Time Slots').item.json.available_slots[0].end_time }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $json.candidate_email }}"
+          ],
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "hangoutsMeet"
+            }
+          },
+          "description": "={{ 'Provisional interview booking. Awaiting candidate confirmation.\\n\\nGoogle Meet link will be generated automatically.' }}",
+          "sendUpdates": "none",
+          "summary": "={{ 'Interview (Provisional): ' + $json.position_title + ' - ' + $json.candidate_name }}"
+        }
+      },
+      "id": "29aba562-a9f4-4807-81c8-491c9a53079d",
+      "name": "Create Provisional Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        216,
+        -2016
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "95oZDcBXS0PLeApc",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "interview_slots",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
+            },
+            {
+              "fieldId": "interviewer_id",
+              "fieldValue": "={{ $('Workflow Configuration').item.json.interviewer_email }}"
+            },
+            {
+              "fieldId": "scheduled_at",
+              "fieldValue": "={{ $('Format Time Slots').item.json.available_slots[0].start_time }}"
+            },
+            {
+              "fieldId": "zoom_link",
+              "fieldValue": "={{ $('Create Provisional Calendar Event').item.json.hangoutLink || 'Google Meet link pending' }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "provisional"
+            }
+          ]
+        }
+      },
+      "id": "c2a72efc-4b7b-46e6-a628-9bde295b34e7",
+      "name": "Create Interview Slot Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        440,
+        -2016
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "interview_scheduled"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ 'Interview invitation sent to ' + $('Format Time Slots').item.json.candidate_name + '. Provisional slot: ' + $('Format Time Slots').item.json.available_slots[0].date_formatted }}"
+            },
+            {
+              "fieldId": "created_by",
+              "fieldValue": "system"
+            }
+          ]
+        }
+      },
+      "id": "f777058e-621b-4263-8a49-2475bb36a9b3",
+      "name": "Log to Activity Logs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        664,
+        -2016
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "escalation_subject",
+              "value": "={ 'Manual Scheduling Required - ' + $json.position_title }",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "escalation_body",
+              "value": "={ `ATTENTION: Automated scheduling failed\n\nCandidate: ${$json.candidate_name}\nEmail: ${$json.candidate_email}\nPosition: ${$json.position_title}\nApplication ID: ${$json.application_id}\n\nReason: No available time slots found in the next ${$('Workflow Configuration').item.json.search_window_days} days.\n\nAction Required: Please manually coordinate interview scheduling with the candidate.\n\nThis is an automated notification from the Interview Scheduling Assistant.` }",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "recruiter_email",
+              "value": "PLACEHOLDER_RECRUITER_EMAIL@company.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a8bc7608-b696-416b-b105-23eef881a5b3",
+      "name": "Prepare Escalation Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -232,
+        -1824
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recruiter_email }}",
+        "subject": "={{ $json.escalation_subject }}",
+        "emailType": "text",
+        "message": "={{ $json.escalation_body }}",
+        "options": {}
+      },
+      "id": "97bc7c04-17d6-4960-a238-251a5207addf",
+      "name": "Send Escalation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -8,
+        -1824
+      ],
+      "webhookId": "23bb1a41-c38c-4d12-989d-3605e9adc96d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YKmdwWAILz46yMv5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
+            },
+            {
+              "fieldId": "action",
+              "fieldValue": "scheduling_escalation"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ 'No available time slots found. Escalated to recruiter for manual scheduling. Candidate: ' + $('Format Time Slots').item.json.candidate_name }}"
+            },
+            {
+              "fieldId": "created_by",
+              "fieldValue": "system"
+            }
+          ]
+        }
+      },
+      "id": "f3bb44a8-25d0-4c9e-9f40-bf949d1edf44",
+      "name": "Log Escalation",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        216,
+        -1824
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Supabase Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Application Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Application Details": {
+      "main": [
+        [
+          {
+            "node": "Get Candidate Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Calendar Availability Check",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Availability Check",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Calendar Availability Check",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Info": {
+      "main": [
+        [
+          {
+            "node": "Calendar Availability Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Availability Check": {
+      "main": [
+        [
+          {
+            "node": "Format Time Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Time Slots": {
+      "main": [
+        [
+          {
+            "node": "Check Time Slots Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Time Slots Found": {
+      "main": [
+        [
+          {
+            "node": "Prepare Scheduling Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Escalation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Scheduling Email": {
+      "main": [
+        [
+          {
+            "node": "Send Scheduling Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Scheduling Email": {
+      "main": [
+        [
+          {
+            "node": "Create Provisional Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Provisional Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Create Interview Slot Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Interview Slot Record": {
+      "main": [
+        [
+          {
+            "node": "Log to Activity Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Escalation Email": {
+      "main": [
+        [
+          {
+            "node": "Send Escalation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Escalation Email": {
+      "main": [
+        [
+          {
+            "node": "Log Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ecea1f31-3a13-48fd-9133-4d6d3609bb19",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "sQP7pv0paKFgM_kJNxKnY",
+  "tags": []
+}
