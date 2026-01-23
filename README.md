@@ -1,4 +1,4 @@
-# 🚀 Recruitment Platform - N8N Automation Architecture
+# 🚀 Agentic Plaza - N8N Automation Architecture
 
 > Complete PRD suite: 2 base requirements + 5 high-value workflows
 
