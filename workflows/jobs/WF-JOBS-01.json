@@ -1,0 +1,402 @@
+{
+  "name": "WF-JOBS-01",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf-jobs-01/synthesize",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "fd196292-25d9-45dc-af03-019a7c68b292",
+      "name": "WF-JOBS-01: Synthesize Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -624,
+        496
+      ],
+      "webhookId": "16213b56-c127-4707-a84f-87974797d3b6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "workflow_name",
+              "value": "WF-JOBS-01: Neural Synthesis Agent",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "workflow_version",
+              "value": "1.0",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "company_name",
+              "value": "42 Stories",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "edaeee59-fb5b-47bb-8dae-fb3053b6f6bc",
+      "name": "WF-JOBS-01: Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "mission",
+              "value": "={{ $json.body.mission || 'Transform recruitment through AI-powered storytelling' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "stack",
+              "value": "={{ $json.body.stack || 'Modern tech stack' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "culture",
+              "value": "={{ $json.body.culture || 'Innovation-driven culture' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "job_title",
+              "value": "={{ $json.body.job_title || 'Position Title' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "department",
+              "value": "={{ $json.body.department || 'Department' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e9eaec78-69e8-48bd-b188-bd7c6b505867",
+      "name": "Parse Focus Nodes",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "f685a6d2-09a2-4adb-80aa-cb6ba06f63dc",
+      "name": "OpenAI GPT-4 Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        928
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "iBeenS29ZBpvxehL",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"overview\": \"Compelling job overview aligned with 42 Stories mission\",\n  \"responsibilities\": [\"Key responsibility 1\", \"Key responsibility 2\"],\n  \"requirements\": [\"Required skill 1\", \"Required skill 2\"],\n  \"tech_stack\": [\"Technology 1\", \"Technology 2\"],\n  \"culture_fit\": \"How this role embodies 42 Stories culture\",\n  \"benefits\": [\"Benefit 1\", \"Benefit 2\"]\n}",
+        "autoFix": true
+      },
+      "id": "8deb79cb-836b-4ea2-8364-8ba4076998c1",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        124,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Neural Synthesis Agent for 42 Stories, specializing in creating high-fidelity branded job descriptions.\n\nYour task is to generate a compelling job description based on the following Focus Nodes:\n\n**Mission:** {{ $json.mission }}\n**Tech Stack:** {{ $json.stack }}\n**Culture:** {{ $json.culture }}\n**Job Title:** {{ $json.job_title }}\n**Department:** {{ $json.department }}\n\nCreate a job description that:\n1. Aligns perfectly with 42 Stories' mission and values\n2. Highlights the specific tech stack requirements\n3. Reflects the company culture authentically\n4. Is engaging and attracts top talent\n5. Maintains brand consistency\n\nGenerate a structured output with overview, responsibilities, requirements, tech_stack, culture_fit, and benefits.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert recruiter and brand storyteller for 42 Stories. Your job descriptions are known for:\n- Perfect alignment with company mission and values\n- Clear, compelling language that attracts A-players\n- Authentic representation of company culture\n- Specific, actionable requirements\n- Brand consistency across all departments\n\nAlways maintain a professional yet engaging tone. Focus on what makes 42 Stories unique and why talented individuals should join the team."
+        }
+      },
+      "id": "1f9441bb-eee2-4903-b36b-2bf952c22876",
+      "name": "Neural Synthesis Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, job_id: $('Prepare Data for Supabase').item.json.job_id, job_description: $('Neural Synthesis Agent').item.json.output, supabase_record: $json, generated_at: $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "4a61d3c7-19bf-4de0-9f48-0379e6d98712",
+      "name": "Respond to Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        940,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "job_id",
+              "value": "={{ 'JOB-' + $now.format('yyyyMMdd-HHmmss') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "company_id",
+              "value": "COMP-42STORIES",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "job_title",
+              "value": "={{ $('Parse Focus Nodes').item.json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "department",
+              "value": "={{ $('Parse Focus Nodes').item.json.department }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "overview",
+              "value": "={{ $json.output.overview }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "responsibilities",
+              "value": "={{ JSON.stringify($json.output.responsibilities) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-7",
+              "name": "requirements",
+              "value": "={{ JSON.stringify($json.output.requirements) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-8",
+              "name": "tech_stack",
+              "value": "={{ JSON.stringify($json.output.tech_stack) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-9",
+              "name": "culture_fit",
+              "value": "={{ $json.output.culture_fit }}",
+              "type": "string"
+            },
+            {
+              "id": "id-10",
+              "name": "benefits",
+              "value": "={{ JSON.stringify($json.output.benefits) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-11",
+              "name": "status",
+              "value": "draft",
+              "type": "string"
+            },
+            {
+              "id": "id-12",
+              "name": "created_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-13",
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ee2a5b02-7546-4f09-9e15-c0c33bc15a9d",
+      "name": "Prepare Data for Supabase",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        492,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "jobs",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "6b4f1e02-4333-4f7f-ad1d-cd7d66c291f8",
+      "name": "Insert Job into Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        716,
+        496
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WF-JOBS-01: Synthesize Trigger": {
+      "main": [
+        [
+          {
+            "node": "WF-JOBS-01: Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF-JOBS-01: Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Parse Focus Nodes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Focus Nodes": {
+      "main": [
+        [
+          {
+            "node": "Neural Synthesis Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4 Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Neural Synthesis Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Neural Synthesis Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Neural Synthesis Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data for Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data for Supabase": {
+      "main": [
+        [
+          {
+            "node": "Insert Job into Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Job into Supabase": {
+      "main": [
+        [
+          {
+            "node": "Respond to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "247879e2-828f-475e-99da-6d2c840cdf47",
+  "meta": {
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "apK8XoPSoIkpKTIvvn2O1",
+  "tags": []
+}
