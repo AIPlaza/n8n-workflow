@@ -1,0 +1,488 @@
+{
+  "name": "supabase-server",
+  "nodes": [
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_profile\n\nDESCRIPTION:\nProvides CRUD operations for candidate profiles. Supports retrieval by ID or \nemail, listing all profiles, and creating or updating profile data.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_by_id\", \"get_by_email\", \"get_all\", \"create\", \"update\"],\n      \"description\": \"Profile operation to perform\"\n    },\n    \"profile_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Profile UUID\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"format\": \"email\",\n      \"description\": \"Profile email address\"\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"description\": \"JSON object with profile fields to create/update\"\n    },\n    \"limit\": {\n      \"type\": \"number\",\n      \"default\": 50,\n      \"description\": \"Number of profiles to return for get_all\"\n    }\n  },\n  \"required\": [\"action\"]\n}\n\nEXAMPLE REQUEST:\n{\n  \"action\": \"get_by_email\",\n  \"email\": \"candidate@example.com\"\n}\n\nEXPECTED OUTPUT:\n{\n  \"success\": true,\n  \"action\": \"get_by_email\",\n  \"result\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Jane Doe\",\n    \"email\": \"candidate@example.com\",\n    \"skills\": [\"React\", \"TypeScript\"]\n  },\n  \"timestamp\": \"2026-01-29T12:00:00Z\"\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-profile"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -544,
+        80
+      ],
+      "id": "5a55049c-d65e-4c74-b658-40a611bea723",
+      "name": "Supabase-Profiles",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: Supabase-Profiles\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_activity\n\nDESCRIPTION:\nManages activity logs in Supabase. Supports inserting new activity events\n(emails, status changes) and retrieving recent activity for specific applications.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"insert_log\", \"get_recent_activity\"],\n      \"description\": \"Action to perform\"\n    },\n    \"application_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Application UUID\"\n    },\n    \"activity_type\": {\n      \"type\": \"string\",\n      \"default\": \"general\",\n      \"description\": \"Category of activity\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"default\": \"success\",\n      \"description\": \"Status of the activity event\"\n    },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"description\": \"Optional JSON metadata\"\n    },\n    \"limit\": {\n      \"type\": \"number\",\n      \"default\": 10,\n      \"description\": \"Number of logs to return when querying activity\"\n    }\n  },\n  \"required\": [\"action\", \"application_id\"]\n}\n\nEXAMPLE REQUEST:\n{\n  \"action\": \"insert_log\",\n  \"application_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"activity_type\": \"email_sent\",\n  \"status\": \"success\",\n  \"metadata\": { \"subject\": \"Interview Scheduled\" }\n}\n\nEXPECTED OUTPUT:\n{\n  \"success\": true,\n  \"action\": \"insert_log\",\n  \"result\": { \"id\": \"log-001\", \"created_at\": \"...\" },\n  \"timestamp\": \"2026-01-29T12:00:00Z\"\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-activity"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -512,
+        224
+      ],
+      "id": "43766db5-1913-4a92-ac20-939c8658f275",
+      "name": "Supabase-Activity",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: Supabase-Activity\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "path": "13846090-56da-45fa-8d28-3bf1391c42d1"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        0
+      ],
+      "id": "62c08c15-0e96-4357-a70a-edad57f6ea14",
+      "name": "Supabase-server",
+      "webhookId": "13846090-56da-45fa-8d28-3bf1391c42d1"
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_applications\n\nDESCRIPTION:\nManages job applications and computes hiring analytics. Supports listing \napplications by candidate/job, creating records, and calculating conversion rates\nor trends.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_by_candidate\", \"get_by_job\", \"get_analytics\", \"create_application\", \"update_status\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"job_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Job UUID\"\n    },\n    \"application_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Application UUID (for status updates)\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"New status for the application\"\n    },\n    \"analytics_type\": {\n      \"type\": \"string\",\n      \"enum\": [\"conversion\", \"top_jobs\", \"response_rate\", \"trend\"],\n      \"default\": \"conversion\",\n      \"description\": \"Type of analytics to compute\"\n    },\n    \"limit\": {\n      \"type\": \"number\",\n      \"default\": 100,\n      \"description\": \"Limit for records returned\"\n    }\n  },\n  \"required\": [\"action\"]\n}\n\nEXAMPLE REQUEST:\n{\n  \"action\": \"get_analytics\",\n  \"analytics_type\": \"conversion\"\n}\n\nEXPECTED OUTPUT:\n{\n  \"success\": true,\n  \"action\": \"get_analytics\",\n  \"result\": {\n    \"total_applications\": 42,\n    \"hired\": 5,\n    \"conversion_rate\": \"11.90%\"\n  },\n  \"timestamp\": \"2026-01-29T12:00:00Z\"\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-applications"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -352,
+        240
+      ],
+      "id": "f13ee76a-2656-437b-a4ae-9638a5869065",
+      "name": "Supabase-Applications",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: Supabase-Applications\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_summaries\n\nDESCRIPTION:\nManages AI-generated candidate summaries. Supports checking for existing \ncached summaries and storing new ones.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"check_cache\", \"store_summary\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"summary_data\": {\n      \"type\": \"object\",\n      \"description\": \"JSON object with summary content (only for store_summary)\"\n    }\n  },\n  \"required\": [\"action\", \"candidate_id\"]\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-summaries"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        288
+      ],
+      "id": "d366f16e-668a-4c6e-80aa-2beea16642a2",
+      "name": "ms-supabase-summaries",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: ms-supabase-summaries\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_ai_cache\n\nDESCRIPTION:\nNeural interaction cache. Prevents redundant LLM calls by storing hashes of \nprevious prompts and their outputs. Enhances performance and reduces costs.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"check_cache\", \"store_interaction\"],\n      \"description\": \"Action to perform\"\n    },\n    \"composite_hash\": {\n      \"type\": \"string\",\n      \"description\": \"Unique hash of the prompt/context\"\n    },\n    \"output_content\": {\n      \"type\": \"object\",\n      \"description\": \"The AI output to store\"\n    }\n  },\n  \"required\": [\"action\", \"composite_hash\"]\n}\n",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-ai-cache"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        288
+      ],
+      "id": "7d4d4dd9-ea3a-459d-81b2-29a864d6e039",
+      "name": "ms-supabase-ai-cache",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: ms-supabase-ai-cache\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_badges\n\nDESCRIPTION:\nManages candidate badges and accomplishments. Supports fetching a candidate's\ncurrent badges and awarding new ones.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_by_candidate\", \"award_badge\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"badge_type\": {\n      \"type\": \"string\",\n      \"description\": \"Identifier for the badge (e.g., 'profile_ready')\"\n    }\n  },\n  \"required\": [\"action\", \"candidate_id\"]\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-badges"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        240
+      ],
+      "id": "d8050229-d7be-4d54-b6ee-43cb2de30184",
+      "name": "ms-supabase-badges",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: ms-supabase-badges\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_jobs\n\nDESCRIPTION:\nCentralized job listing management. Supports retrieving active jobs, creating \nnew listings, and storing AI-generated job descriptions.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_active\", \"create\", \"store_generated\"],\n      \"description\": \"Action to perform\"\n    },\n    \"since\": {\n      \"type\": \"string\",\n      \"description\": \"Optional ISO timestamp for get_active (jobs since X)\"\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"description\": \"Job data payload\"\n    }\n  },\n  \"required\": [\"action\"]\n}\n",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-jobs"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "input"
+          ],
+          "schema": [
+            {
+              "id": "input",
+              "displayName": "input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        208
+      ],
+      "id": "1d0eccb0-ae81-4e80-8edf-807c46e6ec5b",
+      "name": "ms-supabase-jobs",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: ms-supabase-jobs\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "description": "TOOL NAME: ms_supabase_matching\n\nDESCRIPTION:\nStores AI-powered job matching results. Records the relationship between a \ncandidate and a job along with the computed match score.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"store_match\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"job_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Job UUID\"\n    },\n    \"match_score\": {\n      \"type\": \"number\",\n      \"description\": \"Match score (0-100)\"\n    }\n  },\n  \"required\": [\"action\", \"candidate_id\", \"job_id\", \"match_score\"]\n}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "recruiter-app — ms-supabase-matching"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "aNumber": 0
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "aField",
+              "displayName": "aField",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "aNumber",
+              "displayName": "aNumber",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "thisFieldAcceptsAnyType",
+              "displayName": "thisFieldAcceptsAnyType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "anArray",
+              "displayName": "anArray",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        160
+      ],
+      "id": "544d5756-b684-42d2-9b99-1ccdfda42c57",
+      "name": "ms-supabase-matching",
+      "notes": "🛠️ MICROSERVICE TOOL\n\nIdentified as: ms-supabase-matching\n\n🔗 Orchestration:\nConnect this tool to the main server to expose functionality."
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 SUPABASE-SERVER PROCEDURE\n\n### What is this?\nAutomated procedure for supabase-server.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via Supabase-server.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-q0biryg8h",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Supabase-Profiles": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase-Activity": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase-Applications": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ms-supabase-summaries": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ms-supabase-ai-cache": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ms-supabase-badges": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ms-supabase-jobs": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ms-supabase-matching": {
+      "ai_tool": [
+        [
+          {
+            "node": "Supabase-server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "da69c791-4a10-43fc-93ee-af3d0b9cc3e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_SUB_WORKFLOW_ID_SUPABASE_SERVER",
+  "tags": []
+}
