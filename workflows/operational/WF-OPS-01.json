@@ -1,773 +1,1007 @@
 {
-  "name": "WF-OPS-01",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "interview-scheduling-webhook",
-        "options": {}
-      },
-      "id": "76d0fd05-c3cb-4884-8d84-be0cf0c63b5c",
-      "name": "Supabase Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -2144,
-        -1920
-      ],
-      "webhookId": "9a3bd601-c061-46eb-ab6d-08a2d71ea56a"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "application_id",
-              "value": "={{ $json.body.record.id }}",
-              "type": "string"
+    "name": "WF-OPS-01",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "candidate-status-change",
+                "authentication": "headerAuth",
+                "responseMode": "lastNode",
+                "options": {}
             },
-            {
-              "id": "id-2",
-              "name": "candidate_id",
-              "value": "={{ $json.body.record.candidate_id }}",
-              "type": "string"
-            },
-            {
-              "id": "id-3",
-              "name": "status",
-              "value": "={{ $json.body.record.status }}",
-              "type": "string"
-            },
-            {
-              "id": "id-4",
-              "name": "position_title",
-              "value": "={{ $json.body.record.position_title || 'Position' }}",
-              "type": "string"
-            },
-            {
-              "id": "id-5",
-              "name": "interviewer_email",
-              "value": "PLACEHOLDER_INTERVIEWER_EMAIL@company.com",
-              "type": "string"
-            },
-            {
-              "id": "id-6",
-              "name": "search_window_days",
-              "value": 7,
-              "type": "number"
-            }
-          ]
+            "id": "webhook-trigger",
+            "name": "Candidate Status Change Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                0,
+                0
+            ]
         },
-        "options": {}
-      },
-      "id": "ac0ae78c-38e9-4f06-bbbd-52c8c2b11b71",
-      "name": "Workflow Configuration",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -1920,
-        -1920
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "tableId": "profiles",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('Get Application Details').item.json.candidate_id }}"
-            }
-          ]
-        }
-      },
-      "id": "45e8afda-1f6c-4757-8e15-07b846d19bf0",
-      "name": "Get Candidate Info",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -1472,
-        -1920
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "PeABjwxLwE7hT4Xt",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "tableId": "applications",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('Workflow Configuration').item.json.application_id }}"
-            }
-          ]
-        }
-      },
-      "id": "d30918f7-d141-4661-acd4-ab685d39c935",
-      "name": "Get Application Details",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -1696,
-        -1920
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "PeABjwxLwE7hT4Xt",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "id",
-          "value": "gpt-4o-mini"
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "id-1",
+                            "name": "candidate_id",
+                            "value": "={{ $json.body.candidate_id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-2",
+                            "name": "application_id",
+                            "value": "={{ $json.body.application_id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-3",
+                            "name": "new_status",
+                            "value": "={{ $json.body.new_status }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-4",
+                            "name": "old_status",
+                            "value": "={{ $json.body.old_status }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-5",
+                            "name": "rejection_reason",
+                            "value": "={{ $json.body.metadata?.rejection_reason || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-6",
+                            "name": "assigned_recruiter_id",
+                            "value": "={{ $json.body.metadata?.assigned_recruiter_id || '' }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "config-set",
+            "name": "Set Merged Context",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                220,
+                0
+            ]
         },
-        "builtInTools": {},
-        "options": {}
-      },
-      "id": "2555e780-3111-4667-ad77-5f79198f65d2",
-      "name": "OpenAI Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [
-        -1116,
-        -1488
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "iBeenS29ZBpvxehL",
-          "name": "OpenAi account 2"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "calendar",
-        "calendar": {
-          "__rl": true,
-          "value": "kennedy.dulceexpreso@gmail.com",
-          "mode": "list",
-          "cachedResultName": "kennedy.dulceexpreso@gmail.com"
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "cachedResultName": "recruiter-app — ms-supabase-profile"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "input": "={{ { action: 'get_by_id', profile_id: $json.candidate_id } }}"
+                    }
+                }
+            },
+            "id": "fetch-profile",
+            "name": "Fetch Profile",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.3,
+            "position": [
+                440,
+                -100
+            ]
         },
-        "timeMin": "={{ new Date().toISOString() }}",
-        "timeMax": "={{ new Date(Date.now() + $('Workflow Configuration').item.json.search_window_days * 24 * 60 * 60 * 1000).toISOString() }}",
-        "options": {}
-      },
-      "id": "c9222eff-5829-4cb5-87c7-ccfb0fc11d0a",
-      "name": "Google Calendar Tool",
-      "type": "n8n-nodes-base.googleCalendarTool",
-      "typeVersion": 1.3,
-      "position": [
-        -1176,
-        -1696
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "95oZDcBXS0PLeApc",
-          "name": "Google Calendar account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "You are an interview scheduling assistant. Your task is to find optimal meeting times for a job interview.\n\nYour goal:\n1. Use the Google Calendar tool to check availability for the next 7 days\n2. Find 3-5 available 1-hour time slots during business hours (9 AM - 5 PM in the interviewer's timezone)\n3. Prefer slots that are at least 2 days in the future to give the candidate time to prepare\n4. Avoid slots on weekends\n5. Return the slots in a structured format\n\nIMPORTANT OUTPUT FORMAT:\nYou MUST return your response as a JSON object with this exact structure:\n{\n  \"available_slots\": [\n    {\n      \"start_time\": \"ISO 8601 datetime\",\n      \"end_time\": \"ISO 8601 datetime\",\n      \"date_formatted\": \"Human-readable format like 'Monday, January 15, 2025 at 2:00 PM'\"\n    }\n  ],\n  \"slots_found\": true or false\n}\n\nIf no suitable slots are found, set slots_found to false and return an empty available_slots array."
-        }
-      },
-      "id": "43bc49d2-ed6d-4753-9986-1825dc700329",
-      "name": "Calendar Availability Check",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        -1248,
-        -1920
-      ]
-    },
-    {
-      "parameters": {
-        "jsonSchemaExample": "{\n  \"available_slots\": [\n    {\n      \"start_time\": \"2025-01-15T10:00:00\",\n      \"end_time\": \"2025-01-15T11:00:00\",\n      \"date_formatted\": \"Wednesday, January 15, 2025 at 10:00 AM\"\n    }\n  ],\n  \"slots_found\": true\n}",
-        "autoFix": true
-      },
-      "id": "ffb0997a-44e8-40e2-8244-b3049dabbe08",
-      "name": "Structured Output Parser",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [
-        -1048,
-        -1696
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "slots_found",
-              "value": "={{ $json.slots_found }}",
-              "type": "boolean"
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "cachedResultName": "recruiter-app — ms-supabase-applications"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "input": "={{ { action: 'get_by_id', application_id: $node[\"Set Merged Context\"].json.application_id } }}"
+                    }
+                }
             },
-            {
-              "id": "id-2",
-              "name": "available_slots",
-              "value": "={{ $json.available_slots }}",
-              "type": "array"
-            },
-            {
-              "id": "id-3",
-              "name": "candidate_email",
-              "value": "={{ $('Get Candidate Info').item.json.email }}",
-              "type": "string"
-            },
-            {
-              "id": "id-4",
-              "name": "candidate_name",
-              "value": "={{ $('Get Candidate Info').item.json.full_name }}",
-              "type": "string"
-            },
-            {
-              "id": "id-5",
-              "name": "position_title",
-              "value": "={{ $('Workflow Configuration').item.json.position_title }}",
-              "type": "string"
-            },
-            {
-              "id": "id-6",
-              "name": "application_id",
-              "value": "={{ $('Workflow Configuration').item.json.application_id }}",
-              "type": "string"
-            }
-          ]
+            "id": "fetch-app",
+            "name": "Fetch Application",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.3,
+            "position": [
+                440,
+                100
+            ]
         },
-        "options": {}
-      },
-      "id": "01662658-43e2-49e2-b83a-2d4031245311",
-      "name": "Format Time Slots",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -680,
-        -1920
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "id-1",
-              "leftValue": "={{ $json.slots_found }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "id-1",
+                            "name": "merged",
+                            "value": "={{ Object.assign({}, $node[\"Set Merged Context\"].json, $node[\"Fetch Profile\"].json.result, $node[\"Fetch Application\"].json.result) }}",
+                            "type": "object"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "merge-data",
+            "name": "Prepare Data for Routing",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                660,
+                0
+            ]
         },
-        "options": {}
-      },
-      "id": "1c7ed350-3d2a-4b1e-806b-739e6ca46621",
-      "name": "Check Time Slots Found",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        -456,
-        -1920
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "email_subject",
-              "value": "={{ 'Interview Invitation - ' + $json.position_title }}",
-              "type": "string"
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Applied",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Applied"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Screening",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Screening"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Selected for backup pool",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Backup Pool"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "MVP Test",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "MVP Test"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Interview",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Interview"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Assigned",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Assigned"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.merged.new_status }}",
+                                        "rightValue": "Project assigned to other candidate",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "Rejected"
+                        }
+                    ]
+                },
+                "options": {}
             },
-            {
-              "id": "id-2",
-              "name": "email_body",
-              "value": "={{ `Dear ${$json.candidate_name},\n\nThank you for your interest in the ${$json.position_title} position. We would like to invite you to an interview.\n\nWe have identified the following available time slots. Please reply to this email with your preferred time:\n\n` + $json.available_slots.map((slot, i) => `${i + 1}. ${slot.date_formatted}`).join('\\n') + `\n\nInterview Details:\n- Duration: 1 hour\n- Format: Video call via Google Meet (link will be sent upon confirmation)\n\nPlease confirm your availability at your earliest convenience.\n\nBest regards,\nRecruitment Team` }}",
-              "type": "string"
-            }
-          ]
+            "id": "switch-status",
+            "name": "Route by Status",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                880,
+                0
+            ]
         },
-        "options": {}
-      },
-      "id": "6d977fa7-6eda-4294-a8ee-306e00cb3c0f",
-      "name": "Prepare Scheduling Email",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -232,
-        -2016
-      ]
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $json.candidate_email }}",
-        "subject": "={{ $json.email_subject }}",
-        "emailType": "text",
-        "message": "={{ $json.email_body }}",
-        "options": {}
-      },
-      "id": "b0a702c8-3db1-4855-bf40-77cd53bfb8b5",
-      "name": "Send Scheduling Email",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.2,
-      "position": [
-        -8,
-        -2016
-      ],
-      "webhookId": "dac2aacc-1cb0-4d08-a962-97be9d9ba26e",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "YKmdwWAILz46yMv5",
-          "name": "Gmail account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "calendar": {
-          "__rl": true,
-          "value": "kennedy.dulceexpreso@gmail.com",
-          "mode": "list",
-          "cachedResultName": "kennedy.dulceexpreso@gmail.com"
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Application Received: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Application Received</span><h1 class=\"h1\">We have received your application.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\">Thanks for applying to the <strong>{{ $json.merged.jobs.title }}</strong> position. Our Analysis-First engine is currently reviewing your profile against our core criteria.</p><p class=\"p\">You don't need to do anything else right now.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">View Application Status</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-applied",
+            "name": "Email: Applied",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                -400
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
         },
-        "start": "={{ $('Format Time Slots').item.json.available_slots[0].start_time }}",
-        "end": "={{ $('Format Time Slots').item.json.available_slots[0].end_time }}",
-        "additionalFields": {
-          "attendees": [
-            "={{ $json.candidate_email }}"
-          ],
-          "conferenceDataUi": {
-            "conferenceDataValues": {
-              "conferenceSolution": "hangoutsMeet"
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Screening in Progress: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(147,51,234,0.1);color:#c084fc;border:1px solid rgba(147,51,234,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Screening in Progress</span><h1 class=\"h1\">You've moved forward.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\">Your profile has passed the initial gates for <strong>{{ $json.merged.jobs.title }}</strong>. A Human Specialist is now reviewing your portfolio.</p><p class=\"p\">We look for technical excellence and cultural fit.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">Track Progress</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-screening",
+            "name": "Email: Screening",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                -250
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
             }
-          },
-          "description": "={{ 'Provisional interview booking. Awaiting candidate confirmation.\\n\\nGoogle Meet link will be generated automatically.' }}",
-          "sendUpdates": "none",
-          "summary": "={{ 'Interview (Provisional): ' + $json.position_title + ' - ' + $json.candidate_name }}"
-        }
-      },
-      "id": "29aba562-a9f4-4807-81c8-491c9a53079d",
-      "name": "Create Provisional Calendar Event",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.3,
-      "position": [
-        216,
-        -2016
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "95oZDcBXS0PLeApc",
-          "name": "Google Calendar account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "interview_slots",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "application_id",
-              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
-            },
-            {
-              "fieldId": "interviewer_id",
-              "fieldValue": "={{ $('Workflow Configuration').item.json.interviewer_email }}"
-            },
-            {
-              "fieldId": "scheduled_at",
-              "fieldValue": "={{ $('Format Time Slots').item.json.available_slots[0].start_time }}"
-            },
-            {
-              "fieldId": "zoom_link",
-              "fieldValue": "={{ $('Create Provisional Calendar Event').item.json.hangoutLink || 'Google Meet link pending' }}"
-            },
-            {
-              "fieldId": "status",
-              "fieldValue": "provisional"
-            }
-          ]
-        }
-      },
-      "id": "c2a72efc-4b7b-46e6-a628-9bde295b34e7",
-      "name": "Create Interview Slot Record",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        440,
-        -2016
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "PeABjwxLwE7hT4Xt",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "activity_logs",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "application_id",
-              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
-            },
-            {
-              "fieldId": "action",
-              "fieldValue": "interview_scheduled"
-            },
-            {
-              "fieldId": "details",
-              "fieldValue": "={{ 'Interview invitation sent to ' + $('Format Time Slots').item.json.candidate_name + '. Provisional slot: ' + $('Format Time Slots').item.json.available_slots[0].date_formatted }}"
-            },
-            {
-              "fieldId": "created_by",
-              "fieldValue": "system"
-            }
-          ]
-        }
-      },
-      "id": "f777058e-621b-4263-8a49-2475bb36a9b3",
-      "name": "Log to Activity Logs",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        664,
-        -2016
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "PeABjwxLwE7hT4Xt",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "id-1",
-              "name": "escalation_subject",
-              "value": "={ 'Manual Scheduling Required - ' + $json.position_title }",
-              "type": "string"
-            },
-            {
-              "id": "id-2",
-              "name": "escalation_body",
-              "value": "={ `ATTENTION: Automated scheduling failed\n\nCandidate: ${$json.candidate_name}\nEmail: ${$json.candidate_email}\nPosition: ${$json.position_title}\nApplication ID: ${$json.application_id}\n\nReason: No available time slots found in the next ${$('Workflow Configuration').item.json.search_window_days} days.\n\nAction Required: Please manually coordinate interview scheduling with the candidate.\n\nThis is an automated notification from the Interview Scheduling Assistant.` }",
-              "type": "string"
-            },
-            {
-              "id": "id-3",
-              "name": "recruiter_email",
-              "value": "PLACEHOLDER_RECRUITER_EMAIL@company.com",
-              "type": "string"
-            }
-          ]
         },
-        "options": {}
-      },
-      "id": "a8bc7608-b696-416b-b105-23eef881a5b3",
-      "name": "Prepare Escalation Email",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -232,
-        -1824
-      ]
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $json.recruiter_email }}",
-        "subject": "={{ $json.escalation_subject }}",
-        "emailType": "text",
-        "message": "={{ $json.escalation_body }}",
-        "options": {}
-      },
-      "id": "97bc7c04-17d6-4960-a238-251a5207addf",
-      "name": "Send Escalation Email",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.2,
-      "position": [
-        -8,
-        -1824
-      ],
-      "webhookId": "23bb1a41-c38c-4d12-989d-3605e9adc96d",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "YKmdwWAILz46yMv5",
-          "name": "Gmail account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "activity_logs",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "application_id",
-              "fieldValue": "={{ $('Format Time Slots').item.json.application_id }}"
+        {
+            "parameters": {
+                "amount": 2,
+                "unit": "days"
             },
-            {
-              "fieldId": "action",
-              "fieldValue": "scheduling_escalation"
+            "id": "wait-screening",
+            "name": "Wait 2 Days",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                1300,
+                -250
+            ]
+        },
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "cachedResultName": "recruiter-app — ms-supabase-applications"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "input": "={{ { action: 'get_by_id', application_id: $node[\"Prepare Data for Routing\"].json.merged.application_id } }}"
+                    }
+                }
             },
-            {
-              "fieldId": "details",
-              "fieldValue": "={{ 'No available time slots found. Escalated to recruiter for manual scheduling. Candidate: ' + $('Format Time Slots').item.json.candidate_name }}"
+            "id": "recheck-screening",
+            "name": "Re-check Screening Status",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.3,
+            "position": [
+                1500,
+                -250
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.result.status }}",
+                            "rightValue": "Screening",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ]
+                }
             },
-            {
-              "fieldId": "created_by",
-              "fieldValue": "system"
+            "id": "if-still-screening",
+            "name": "Still Screening?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                1700,
+                -250
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Talent Pool Update: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Talent Network</span><h1 class=\"h1\">Added to Elite Pool.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\">While we proceed with other candidates for <strong>{{ $json.merged.jobs.title }}</strong>, your profile impressed us. We've added you to our priority network.</p><p class=\"p\">Should a role matching your skills arise, you'll be the first to know.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">Update Profile</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-backup",
+            "name": "Email: Backup Pool",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                -100
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
             }
-          ]
+        },
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "cachedResultName": "recruiter-app — ms-supabase-profile"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "input": "={{ { action: 'update', profile_id: $node[\"Prepare Data for Routing\"].json.merged.candidate_id, data: { is_talent_pool: true } } }}"
+                    }
+                }
+            },
+            "id": "tag-talent-pool",
+            "name": "Tag Talent Pool",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.3,
+            "position": [
+                1300,
+                -100
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Technical Assessment Invitation: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(147,51,234,0.1);color:#c084fc;border:1px solid rgba(147,51,234,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Skill Assessment</span><h1 class=\"h1\">Prove your craft.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\"><strong>{{ $json.merged.jobs.title }}</strong> requires excellence. We invite you to demonstrate your skills in our MVP Technical Assessment.</p><p class=\"p\">This is your chance to show us what you can build.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">Start Assessment</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-mvp",
+            "name": "Email: MVP Test",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                50
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Interview Invitation: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Interview Invitation</span><h1 class=\"h1\">Let's talk.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\">You have impressed us. Now, we wish to know the person behind the code. We invite you to an interview to discuss your future at Technoplay.</p><p class=\"p\">Please select a time that suits your schedule.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">Schedule Interview</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-interview",
+            "name": "Email: Interview",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                200
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $json.merged.email }}",
+                "subject": "=Welcome Aboard! Placement Finalized: {{ $json.merged.jobs.title }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.btn{display:inline-block;background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);color:#ffffff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px;box-shadow:0 4px 12px rgba(79,70,229,0.3)}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.badge{display:inline-block;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:20px;letter-spacing:0.5px;background-color:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2)}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><span class=\"badge\">Offer Accepted</span><h1 class=\"h1\">Welcome to the team.</h1><p class=\"p\">Hello {{ $json.merged.full_name }},</p><p class=\"p\">It is with great pleasure that we officially welcome you to the <strong>{{ $json.merged.jobs.title }}</strong> project. The search is over; the work begins.</p><p class=\"p\">Your dashboard has been updated with onboarding details.</p><a href=\"https://recruiter-app.com/dashboard\" class=\"btn\">Begin Onboarding</a></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-assigned",
+            "name": "Email: Assigned (Candidate)",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1100,
+                350
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "hr@recruiter-app.com",
+                "subject": "=Internal: Candidate Assigned - {{ $json.merged.full_name }}",
+                "html": "=<!DOCTYPE html><html><head><style>body{font-family:'Segoe UI',sans-serif;padding:20px;color:#333}.box{border:1px solid #ddd;padding:15px;border-radius:5px;background:#f9f9f9}</style></head><body><h3>Candidate Assigned</h3><div class=\"box\"><p><strong>Candidate:</strong> {{ $json.merged.full_name }}</p><p><strong>Email:</strong> {{ $json.merged.email }}</p><p><strong>Project:</strong> {{ $json.merged.jobs.title }}</p></div><p>Please initiate payroll and onboarding.</p></body></html>",
+                "options": {}
+            },
+            "id": "email-assigned-internal",
+            "name": "Email: Assigned (Internal HR)",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1300,
+                350
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=Draft a professional and empathetic rejection email for {{ $json.merged.full_name }} who applied for '{{ $json.merged.jobs.title }}'.\n\nReason for rejection: {{ $json.merged.rejection_reason || 'Not specified' }}\n\nEnsure the tone is respectful and encourages future applications if appropriate.",
+                "options": {
+                    "systemMessage": "You are an HR Specialist. Draft rejection emails based on the provided context. Return JSON with 'email_subject', 'email_body', and 'confidence_score' (0-1)."
+                }
+            },
+            "id": "ai-rejection-agent",
+            "name": "AI Rejection Email Generator",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 3.1,
+            "position": [
+                1100,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "mode": "id",
+                    "value": "gpt-4o"
+                }
+            },
+            "id": "openai-model",
+            "name": "OpenAI Chat Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.3,
+            "position": [
+                1100,
+                800
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "xSl0KULZeJ0OYqFX",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "schemaType": "manual",
+                "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"email_subject\": { \"type\": \"string\" },\n    \"email_body\": { \"type\": \"string\" },\n    \"confidence_score\": { \"type\": \"number\" }\n  },\n  \"required\": [\"email_subject\", \"email_body\", \"confidence_score\"]\n}"
+            },
+            "id": "output-parser",
+            "name": "Structured Output Parser",
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.3,
+            "position": [
+                1250,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.output.confidence_score }}",
+                            "rightValue": 0.9,
+                            "operator": {
+                                "type": "number",
+                                "operation": "lt"
+                            }
+                        }
+                    ]
+                }
+            },
+            "id": "check-ai-confidence",
+            "name": "Low Confidence?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                1350,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "formFields": {
+                    "values": [
+                        {
+                            "fieldLabel": "Email Subject",
+                            "fieldName": "email_subject",
+                            "defaultValue": "={{ $node[\"AI Rejection Email Generator\"].json.output.email_subject }}"
+                        },
+                        {
+                            "fieldLabel": "Email Body",
+                            "fieldType": "textarea",
+                            "fieldName": "email_body",
+                            "defaultValue": "={{ $node[\"AI Rejection Email Generator\"].json.output.email_body }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "formTitle": "Review Rejection Email",
+                    "formDescription": "The AI generated a rejection email with low confidence. Please review."
+                }
+            },
+            "id": "hitl-form",
+            "name": "Admin Review Form",
+            "type": "n8n-nodes-base.form",
+            "typeVersion": 2.5,
+            "position": [
+                1550,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "resume": "webhook"
+            },
+            "id": "wait-hitl",
+            "name": "Wait for Approval",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                1750,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "management@technoplay.io",
+                "toEmail": "={{ $node[\"Prepare Data for Routing\"].json.merged.email }}",
+                "subject": "={{ $json.email_subject || $node[\"AI Rejection Email Generator\"].json.output.email_subject }}",
+                "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>body{font-family:'Inter',system-ui,'Segoe UI',sans-serif;background-color:#020617;color:#e2e8f0;margin:0;padding:20px}.card{background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);max-width:600px;margin:0 auto}.header{background-color:#0f172a;padding:32px;text-align:center;border-bottom:1px solid #1e293b}.logo{background:linear-gradient(135deg,#9333ea 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:28px;font-weight:800;letter-spacing:-0.5px;text-transform:none;display:inline-block}.content{padding:40px;background-color:#0f172a}.h1{font-size:24px;font-weight:700;margin-bottom:16px;color:#f8fafc;letter-spacing:-0.5px}.p{font-size:16px;line-height:1.6;color:#94a3b8;margin-bottom:24px}.footer{background-color:#020617;padding:24px;text-align:center;font-size:12px;color:#475569}.divider{height:1px;background-color:#1e293b;margin:32px 0}</style></head><body><div class=\"card\"><div class=\"header\"><span class=\"logo\">Agentic Plaza</span></div><div class=\"content\"><h1 class=\"h1\">Regarding Your Application</h1><div class=\"p\">{{ $json.email_body || $node[\"AI Rejection Email Generator\"].json.output.email_body }}</div><div class=\"divider\"></div><p class=\"p\" style=\"font-size: 14px; color: #64748b;\">We thank you for your interest and wish you the very best in your professional endeavors.</p></div><div class=\"footer\">&copy; 2026 Technoplay.io<br><a href=\"https://recruiter-app.com/login\" style=\"color:#64748b\">Unsubscribe</a></div></div></body></html>",
+                "options": {}
+            },
+            "id": "email-rejected",
+            "name": "Email: Rejected",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                2000,
+                600
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "tYHdisfuQDkXHuUX",
+                    "name": "SMTP account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "workflowId": {
+                    "__rl": true,
+                    "mode": "list",
+                    "cachedResultName": "recruiter-app — ms-supabase-activity"
+                },
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "input": "={{ { action: 'insert_log', application_id: $node[\"Prepare Data for Routing\"].json.merged.application_id, activity_type: 'system_event', title: 'Workflow Execution', status: 'success', metadata: { status: $node[\"Prepare Data for Routing\"].json.merged.new_status } } }}"
+                    }
+                }
+            },
+            "id": "log-activity",
+            "name": "Log Activity",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.3,
+            "position": [
+                2300,
+                0
+            ]
         }
-      },
-      "id": "f3bb44a8-25d0-4c9e-9f40-bf949d1edf44",
-      "name": "Log Escalation",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        216,
-        -1824
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "PeABjwxLwE7hT4Xt",
-          "name": "Supabase account"
+    ],
+    "connections": {
+        "Candidate Status Change Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Set Merged Context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Merged Context": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch Profile",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch Profile": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch Application",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch Application": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Data for Routing",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Data for Routing": {
+            "main": [
+                [
+                    {
+                        "node": "Route by Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route by Status": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Applied",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Screening",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Backup Pool",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: MVP Test",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Interview",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Assigned (Candidate)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "AI Rejection Email Generator",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Applied": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Screening": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 2 Days",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 2 Days": {
+            "main": [
+                [
+                    {
+                        "node": "Re-check Screening Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Re-check Screening Status": {
+            "main": [
+                [
+                    {
+                        "node": "Still Screening?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Still Screening?": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Backup Pool": {
+            "main": [
+                [
+                    {
+                        "node": "Tag Talent Pool",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Tag Talent Pool": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: MVP Test": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Interview": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Assigned (Candidate)": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Assigned (Internal HR)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Assigned (Internal HR)": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Rejection Email Generator": {
+            "main": [
+                [
+                    {
+                        "node": "Low Confidence?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Rejection Email Generator",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Rejection Email Generator",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Low Confidence?": {
+            "main": [
+                [
+                    {
+                        "node": "Admin Review Form",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Rejected",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Admin Review Form": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for Approval",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for Approval": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Rejected",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Rejected": {
+            "main": [
+                [
+                    {
+                        "node": "Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
         }
-      }
-    }
-  ],
-  "pinData": {},
-  "connections": {
-    "Supabase Webhook": {
-      "main": [
-        [
-          {
-            "node": "Workflow Configuration",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     },
-    "Workflow Configuration": {
-      "main": [
-        [
-          {
-            "node": "Get Application Details",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false
     },
-    "Get Application Details": {
-      "main": [
-        [
-          {
-            "node": "Get Candidate Info",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Calendar Availability Check",
-            "type": "ai_languageModel",
-            "index": 0
-          },
-          {
-            "node": "Structured Output Parser",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Calendar Tool": {
-      "ai_tool": [
-        [
-          {
-            "node": "Calendar Availability Check",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Structured Output Parser": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "Calendar Availability Check",
-            "type": "ai_outputParser",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Candidate Info": {
-      "main": [
-        [
-          {
-            "node": "Calendar Availability Check",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Calendar Availability Check": {
-      "main": [
-        [
-          {
-            "node": "Format Time Slots",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Time Slots": {
-      "main": [
-        [
-          {
-            "node": "Check Time Slots Found",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Time Slots Found": {
-      "main": [
-        [
-          {
-            "node": "Prepare Scheduling Email",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Escalation Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Scheduling Email": {
-      "main": [
-        [
-          {
-            "node": "Send Scheduling Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Scheduling Email": {
-      "main": [
-        [
-          {
-            "node": "Create Provisional Calendar Event",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Provisional Calendar Event": {
-      "main": [
-        [
-          {
-            "node": "Create Interview Slot Record",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Interview Slot Record": {
-      "main": [
-        [
-          {
-            "node": "Log to Activity Logs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Escalation Email": {
-      "main": [
-        [
-          {
-            "node": "Send Escalation Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Escalation Email": {
-      "main": [
-        [
-          {
-            "node": "Log Escalation",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "availableInMCP": false
-  },
-  "versionId": "ecea1f31-3a13-48fd-9133-4d6d3609bb19",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
-  },
-  "id": "sQP7pv0paKFgM_kJNxKnY",
-  "tags": []
+    "id": "WF-OPS-01",
+    "active": true
 }
