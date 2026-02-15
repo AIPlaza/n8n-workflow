@@ -1,0 +1,352 @@
+{
+  "name": "ms-supabase-activity",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"insert_log\",\n    \"candidate_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"activity_type\": \"email_sent\",\n    \"status\": \"success\",\n    \"metadata\": { \"subject\": \"Interview Invite\" }\n  }\n}"
+      },
+      "id": "d5f42951-64f8-46b7-b372-1763c7f95130",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "application_id",
+              "value": "={{ $json.input?.application_id || $json.body?.input?.application_id || $json.body?.application_id || 'N/A' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "activity_type",
+              "value": "={{ $json.input?.activity_type || $json.body?.input?.activity_type || $json.body?.activity_type || 'general' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "status",
+              "value": "={{ $json.input?.status || $json.body?.input?.status || $json.body?.status || 'success' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "metadata",
+              "value": "={{ $json.input?.metadata || $json.body?.input?.metadata || $json.body?.metadata || {} }}",
+              "type": "object"
+            },
+            {
+              "id": "id-6",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "title",
+              "value": "={{ $json.input?.title || $json.body?.input?.title || $json.body?.title || 'System Activity' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0385224-f3c9-40ca-a8ff-2dee8ae07cac",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "route-log",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "get_recent_activity",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96789283-a6fe-4302-a52a-61f23375f35c",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        48,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "activity_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "application_id",
+              "fieldValue": "={{ $json.application_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $json.activity_type }}"
+            },
+            {
+              "fieldId": "title",
+              "fieldValue": "={{ $json.title }}"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $json.timestamp }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify($json.metadata) }}"
+            }
+          ]
+        }
+      },
+      "id": "a2f0363d-e4d2-48b0-b8ec-8c972010ac13",
+      "name": "Insert Activity Log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        272,
+        48
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "activity_logs",
+        "limit": "={{ $('Parse Input').item.json.input.limit || 10 }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "application_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.input.application_id }}"
+            }
+          ]
+        }
+      },
+      "id": "c9c830f4-d93a-4321-b5e9-10b5f348f55c",
+      "name": "Get Recent Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        272,
+        240
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28cd956e-192f-4c37-96d0-f6244a964cd6",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "path": "a518933b-cd2b-4fbf-b081-851c0342a3f9",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        -16
+      ],
+      "id": "0204b9d2-ee4c-4102-bd19-fc8dabc48f79",
+      "name": "Webhook",
+      "webhookId": "a518933b-cd2b-4fbf-b081-851c0342a3f9",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: a518933b-cd2b-4fbf-b081-851c0342a3f9\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhooka518933b-cd2b-4fbf-b081-851c0342a3f9\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-ACTIVITY PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-activity.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-flgmdw6lv",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Insert Activity Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Recent Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Activity Log": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Activity": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "4b025981-2148-4eeb-a6a3-8d092d4c357d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_ACTIVITY",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_activity\n\nDESCRIPTION:\nLogs user and system activity. Supports inserting activity logs and retrieving\nrecent activity for a candidate or application.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"insert_log\", \"get_recent_activity\"],\n      \"description\": \"Action to perform\"\n    },\n    \"application_id\": {\n      \"type\": \"string\",\n      \"description\": \"Application ID for context\"\n    },\n    \"activity_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of activity (e.g., email_sent, status_change)\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"Activity status (success, failed)\"\n    },\n    \"metadata\": {\n      \"type\": \"object\",\n      \"description\": \"Additional activity details\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

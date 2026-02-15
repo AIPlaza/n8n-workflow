@@ -1,0 +1,741 @@
+{
+  "name": "ms-supabase-applications",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.input?.candidate_id || $json.body?.input?.candidate_id || $json.body?.candidate_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "job_id",
+              "value": "={{ $json.input?.job_id || $json.body?.input?.job_id || $json.body?.job_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "status",
+              "value": "={{ $json.input?.status || $json.body?.input?.status || $json.body?.status || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "application_id",
+              "value": "={{ $json.input?.application_id || $json.body?.input?.application_id || $json.body?.application_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "analytics_type",
+              "value": "={{ $json.input?.analytics_type || $json.body?.input?.analytics_type || $json.body?.analytics_type || 'conversion' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "limit",
+              "value": "={{ $json.input?.limit || $json.body?.input?.limit || $json.body?.limit || 100 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6bc5a279-12e6-40df-a0b8-bdb00b837db6",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        992,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "limit": "={{ $('Parse Input').item.json.limit }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "aeb08543-a7a6-4639-a0a5-2822ff535efe",
+      "name": "Get Applications By Candidate",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        32
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "limit": "={{ $('Parse Input').item.json.limit }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.job_id }}"
+            }
+          ]
+        }
+      },
+      "id": "c8a6c7f6-6521-48e2-8b10-4b5276efe285",
+      "name": "Get Applications By Job",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "returnAll": true
+      },
+      "id": "25510379-49d8-4a08-92d3-78b9e56b477b",
+      "name": "Get Analytics Data",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        336
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analytics computation based on type\nconst analyticsType = $('Parse Input').item.json.analytics_type;\nconst applications = $input.all();\n\nlet result = {};\n\nswitch(analyticsType) {\n  case 'conversion':\n    const total = applications.length;\n    const hired = applications.filter(a => a.json.status === 'hired').length;\n    result = {\n      total_applications: total,\n      hired: hired,\n      conversion_rate: total > 0 ? (hired / total * 100).toFixed(2) + '%' : '0%'\n    };\n    break;\n    \n  case 'top_jobs':\n    const jobCounts = {};\n    applications.forEach(a => {\n      const jobId = a.json.job_id;\n      jobCounts[jobId] = (jobCounts[jobId] || 0) + 1;\n    });\n    result = {\n      top_jobs: Object.entries(jobCounts)\n        .sort((a, b) => b[1] - a[1])\n        .slice(0, 10)\n        .map(([job_id, count]) => ({ job_id, applications: count }))\n    };\n    break;\n    \n  case 'response_rate':\n    const withResponse = applications.filter(a => \n      a.json.status !== 'submitted' && a.json.status !== 'pending'\n    ).length;\n    result = {\n      total: applications.length,\n      with_response: withResponse,\n      response_rate: applications.length > 0 ? \n        (withResponse / applications.length * 100).toFixed(2) + '%' : '0%'\n    };\n    break;\n    \n  case 'trend':\n    // Group by month\n    const months = {};\n    applications.forEach(a => {\n      const month = new Date(a.json.created_at).toISOString().slice(0, 7);\n      months[month] = (months[month] || 0) + 1;\n    });\n    result = {\n      monthly_trend: Object.entries(months)\n        .sort((a, b) => a[0].localeCompare(b[0]))\n        .map(([month, count]) => ({ month, applications: count }))\n    };\n    break;\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "5bcf732b-13aa-44e2-b9d2-f7e2bfda324b",
+      "name": "Compute Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "applications",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "job_id",
+              "fieldValue": "={{ $('Parse Input').item.json.job_id }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $('Parse Input').item.json.status || 'submitted' }}"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "b4e96d63-d109-4f90-b3a0-44afe7ab5f06",
+      "name": "Create Application",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        496
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "get_by_candidate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_by_candidate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "get_by_job",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_by_job"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "get_by_id",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_by_id"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "get_analytics",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_analytics"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create_application",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create_application"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update_status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update_status"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update_generic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update_generic"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "router-applications",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "applications",
+        "fieldsUi": {
+          "fieldValues": "={{ Object.entries($('Parse Input').item.json.data || {}).map(([key, value]) => ({ fieldId: key, fieldValue: value })) }}"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.application_id }}"
+            }
+          ]
+        }
+      },
+      "id": "update-app-generic",
+      "name": "Update Application Generic",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        784
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "applications",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.application_id }}"
+            }
+          ]
+        }
+      },
+      "id": "get-app-by-id",
+      "name": "Get Application By ID",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        -128
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "applications",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $('Parse Input').item.json.status }}"
+            },
+            {
+              "fieldId": "updated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "20a17502-64aa-48e4-ab7a-f0872f1fa38a",
+      "name": "Update Application Status",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        640
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7daf8dd9-7277-4174-9741-3728d1e7fa9a",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"get_analytics\",\n    \"candidate_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"interview\"\n  }\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        240
+      ],
+      "id": "d2128985-ee3f-4bd1-aa3a-c78b4c87935d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "path": "a6b4d86e-068e-4f50-8e12-2dfd8904bf2f",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        32
+      ],
+      "id": "d3bd1288-6348-4704-a4d8-4f5477f0d3e3",
+      "name": "Webhook",
+      "webhookId": "a6b4d86e-068e-4f50-8e12-2dfd8904bf2f",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: a6b4d86e-068e-4f50-8e12-2dfd8904bf2f\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhooka6b4d86e-068e-4f50-8e12-2dfd8904bf2f\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-APPLICATIONS PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-applications.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Executed by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-g1m49xpeo",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Get Applications By Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Applications By Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Application By ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Analytics Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Application",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Application Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Application Generic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Application By ID": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Application Generic": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Applications By Candidate": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Applications By Job": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Analytics Data": {
+      "main": [
+        [
+          {
+            "node": "Compute Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Analytics": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Application": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Application Status": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "e239ac24-d8f7-428a-97bd-aeaf43b7c662",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_APPLICATIONS",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_applications\n\nDESCRIPTION:\nManages job applications and computes hiring analytics. Supports listing\napplications by candidate/job/ID, creating records, and calculating conversion\nrates or trends.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_by_candidate\", \"get_by_job\", \"get_by_id\", \"get_analytics\", \"create_application\", \"update_status\", \"update_generic\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"job_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Job UUID\"\n    },\n    \"application_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Application UUID (for status updates)\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"New status for the application\"\n    },\n    \"analytics_type\": {\n      \"type\": \"string\",\n      \"enum\": [\"conversion\", \"top_jobs\", \"response_rate\", \"trend\"],\n      \"default\": \"conversion\",\n      \"description\": \"Type of analytics to compute\"\n    },\n    \"limit\": {\n      \"type\": \"number\",\n      \"default\": 100,\n      \"description\": \"Limit for records returned\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

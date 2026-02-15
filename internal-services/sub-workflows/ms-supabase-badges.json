@@ -1,0 +1,315 @@
+{
+  "name": "ms-supabase-badges",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"award_badge\",\n    \"candidate_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"badge_type\": \"profile_ready\"\n  }\n}"
+      },
+      "id": "2c9e7f29-99a4-460b-a784-e06517fc8e21",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.input?.candidate_id || $json.body?.input?.candidate_id || $json.body?.candidate_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "badge_type",
+              "value": "={{ $json.input?.badge_type || $json.body?.input?.badge_type || $json.body?.badge_type || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e52085cc-e175-43fa-8f78-9224395e28f4",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "get-badges",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "get_by_candidate",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "083120ca-d14e-427f-93e8-8f3138d882ac",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidate_badges",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "187277b8-b016-4d80-a548-2cea652c1838",
+      "name": "Get Badges By Candidate",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        48
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_badges",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "badge_type",
+              "fieldValue": "={{ $('Parse Input').item.json.badge_type }}"
+            },
+            {
+              "fieldId": "earned_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "displayed",
+              "fieldValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "23198749-e6c1-4d2a-a8d2-685b2baa3a16",
+      "name": "Award Badge",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        272
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e30d17b-0748-457a-8f05-ad7028d5a739",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1456,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "path": "ee8ab0f5-8711-44a6-a276-d18acbeb761c",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        368,
+        -16
+      ],
+      "id": "416a213e-b9bd-4e17-8257-019e03cdc099",
+      "name": "Webhook",
+      "webhookId": "ee8ab0f5-8711-44a6-a276-d18acbeb761c",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: ee8ab0f5-8711-44a6-a276-d18acbeb761c\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhookee8ab0f5-8711-44a6-a276-d18acbeb761c\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-BADGES PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-badges.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-izu3t7igg",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Get Badges By Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Award Badge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Badges By Candidate": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Award Badge": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "d3827ce8-5697-48ed-b172-81408c61b1a4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_BADGES",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_badges\n\nDESCRIPTION:\nManages candidate badges and accomplishments. Supports fetching a candidate's\ncurrent badges and awarding new ones.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_by_candidate\", \"award_badge\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"badge_type\": {\n      \"type\": \"string\",\n      \"description\": \"Identifier for the badge (e.g., 'profile_ready')\"\n    }\n  },\n  \"required\": [\"action\", \"candidate_id\"]\n}"
+}

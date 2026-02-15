@@ -1,0 +1,266 @@
+{
+  "name": "ms-supabase-reports",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"store_archive\",\n    \"report_html\": \"<html>...</html>\",\n    \"metrics_json\": { \"total_apps\": 150 }\n  }\n}"
+      },
+      "id": "fe82adc4-fbdc-4b52-9272-3046d6918f3b",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "report_html",
+              "value": "={{ $json.input?.report_html || $json.body?.input?.report_html || $json.body?.report_html || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "metrics_json",
+              "value": "={{ $json.input?.metrics_json || $json.body?.input?.metrics_json || $json.body?.metrics_json || {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "36daf103-d254-48d0-ae0f-94a59b2dbce5",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "store-archive",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "store_archive",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eb0567fe-f66c-44ff-9732-b2986ffecd9b",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "report_archive",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "report_html",
+              "fieldValue": "={{ $('Parse Input').item.json.report_html }}"
+            },
+            {
+              "fieldId": "metrics_json",
+              "fieldValue": "={{ JSON.stringify($('Parse Input').item.json.metrics_json) }}"
+            }
+          ]
+        }
+      },
+      "id": "6012eb05-8842-4b54-909b-c31ff17caf84",
+      "name": "Store Archive",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        96
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7211443-906b-4597-b354-9e8101a9b8af",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "path": "9871906b-fe7a-46c1-918d-f61c1f8b59bd",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1184,
+        -80
+      ],
+      "id": "1565a794-45f3-4b3e-a2b7-db615f0d1c34",
+      "name": "Webhook",
+      "webhookId": "9871906b-fe7a-46c1-918d-f61c1f8b59bd",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: 9871906b-fe7a-46c1-918d-f61c1f8b59bd\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhook9871906b-fe7a-46c1-918d-f61c1f8b59bd\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-REPORTS PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-reports.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-cz7v0xw5u",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Store Archive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Archive": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "44951c29-af77-4018-bf8e-414a9e647eb2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "zYRNVqn99vcbqHSWg2CuH",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_reports\n\nDESCRIPTION:\nArchives generated reports. Supports storing HTML reports and associated\nmetrics JSON for historical tracking and compliance.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"store_archive\", \"get_latest\"],\n      \"description\": \"Action to perform\"\n    },\n    \"report_html\": {\n      \"type\": \"string\",\n      \"description\": \"HTML content of the report\"\n    },\n    \"metrics_json\": {\n      \"type\": \"object\",\n      \"description\": \"Metrics data associated with the report\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

@@ -1,0 +1,405 @@
+{
+  "name": "ms-supabase-jobs",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"get_active\",\n    \"data\": { \"title\": \"React Developer\", \"location\": \"Remote\" }\n  }\n}"
+      },
+      "id": "df72607e-670c-45ad-8975-d0a012e7052a",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "job_id",
+              "value": "={{ $json.input?.job_id || $json.body?.input?.job_id || $json.body?.job_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "since",
+              "value": "={{ $json.input?.since || $json.body?.input?.since || $json.body?.since || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "data",
+              "value": "={{ $json.input?.data || $json.body?.input?.data || $json.body?.data || {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4d3f6f67-8e87-491a-b91e-d05b1ab7a1ad",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "get-active",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "get_active",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "get-by-id",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "get_by_id",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "create",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "create",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "store-generated",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "store_generated",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e0af82da-c82a-4162-a633-89f2c5ed0e01",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        80,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "jobs",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            },
+            {
+              "keyName": "created_at",
+              "condition": "gt",
+              "keyValue": "={{ $('Parse Input').item.json.since || '1970-01-01T00:00:00Z' }}"
+            }
+          ]
+        }
+      },
+      "id": "54ed4408-c35a-4869-9f88-78ea40f4f2f6",
+      "name": "Get Jobs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        400,
+        288
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "jobs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Parse Input').item.json.job_id }}"
+            }
+          ]
+        }
+      },
+      "id": "83de9ba2-3bb1-4d15-8fab-b077e4b253a5",
+      "name": "Get Job By ID",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        400,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert"
+      },
+      "id": "134600bc-f99b-4529-b24b-7f87e3628914",
+      "name": "Create Job",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        400,
+        704
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert"
+      },
+      "id": "c9ea564f-12a2-42f0-85ff-9aa0de40ab6c",
+      "name": "Store Generated Description",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        400,
+        880
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7319e020-b300-4e07-b111-7dc2c41e0253",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "path": "1f626850-6b94-460a-87ba-2490b1768dac",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        288
+      ],
+      "id": "592e0cd3-7077-4ef7-8c4e-984a4ba8f998",
+      "name": "Webhook",
+      "webhookId": "1f626850-6b94-460a-87ba-2490b1768dac",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: 1f626850-6b94-460a-87ba-2490b1768dac\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhook1f626850-6b94-460a-87ba-2490b1768dac\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-JOBS PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-jobs.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-0yzaq0e2a",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Get Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Job By ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Jobs": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job By ID": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Job": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Generated Description": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "724ff530-732f-403e-b6a6-6f096f40a6f1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_JOBS",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_jobs\n\nDESCRIPTION:\nManages job postings. Supports retrieving active jobs, getting job by ID,\ncreating new jobs, and storing AI-generated job descriptions.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"get_active\", \"get_by_id\", \"create\", \"store_generated\"],\n      \"description\": \"Job operation to perform\"\n    },\n    \"job_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Job UUID\"\n    },\n    \"since\": {\n      \"type\": \"string\",\n      \"format\": \"date-time\",\n      \"description\": \"Filter jobs created after this timestamp\"\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"description\": \"JSON object with job fields to create/update\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

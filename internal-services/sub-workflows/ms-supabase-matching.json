@@ -1,0 +1,276 @@
+{
+  "name": "ms-supabase-matching",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"store_match\",\n    \"candidate_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"job_id\": \"660f9500-f39c-52e5-b827-557766551111\",\n    \"match_score\": 85\n  }\n}"
+      },
+      "id": "1b9bceb0-932d-4f20-b58c-af5a22ec27fa",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.input?.candidate_id || $json.body?.input?.candidate_id || $json.body?.candidate_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "job_id",
+              "value": "={{ $json.input?.job_id || $json.body?.input?.job_id || $json.body?.job_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "match_score",
+              "value": "={{ $json.input?.match_score || $json.body?.input?.match_score || $json.body?.match_score || 0 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bb6ca65d-55b0-4060-bf0c-0cb318a9d017",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "store-match",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "store_match",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e9c0aa6a-02f0-4fd0-9a4a-4e7c626ab097",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        592,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_job_matches",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "job_id",
+              "fieldValue": "={{ $('Parse Input').item.json.job_id }}"
+            },
+            {
+              "fieldId": "match_score",
+              "fieldValue": "={{ $('Parse Input').item.json.match_score }}"
+            },
+            {
+              "fieldId": "notified_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "2ed30f74-bd6c-4eb9-b51e-8af16380fdfd",
+      "name": "Store Match",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        912,
+        112
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f87cea37-dcc1-4fb7-975b-654c2660d98f",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "path": "c82ce9cf-ce5d-41dc-be8b-c8954ffc0da5",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        -64
+      ],
+      "id": "c5f74fc6-2fd2-4234-b483-2287ec6315a5",
+      "name": "Webhook",
+      "webhookId": "c82ce9cf-ce5d-41dc-be8b-c8954ffc0da5",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: c82ce9cf-ce5d-41dc-be8b-c8954ffc0da5\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhookc82ce9cf-ce5d-41dc-be8b-c8954ffc0da5\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-MATCHING PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-matching.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-hlkkpgbti",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Store Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Match": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3ce62514-d49f-4b0f-98a3-17695c6b9b44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_MATCHING",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_matching\n\nDESCRIPTION:\nStores candidate-job match results. Supports recording match scores between\ncandidates and jobs for later retrieval and analytics.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"store_match\", \"get_matches\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"job_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Job UUID\"\n    },\n    \"match_score\": {\n      \"type\": \"number\",\n      \"description\": \"Match score (0-100)\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

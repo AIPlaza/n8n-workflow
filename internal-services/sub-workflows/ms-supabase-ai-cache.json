@@ -1,0 +1,370 @@
+{
+  "name": "ms-supabase-ai-cache",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"check_cache\",\n    \"composite_hash\": \"a1b2c3d4e5f6...\",\n    \"output_content\": { \"summary\": \"Sample AI output\" }\n  }\n}"
+      },
+      "id": "8d7df79b-723a-4c73-ac00-5e35b4dbf74f",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -768,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "composite_hash",
+              "value": "={{ $json.input?.composite_hash || $json.body?.input?.composite_hash || $json.body?.composite_hash || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "data",
+              "value": "={{ $json.input?.data || $json.body?.input?.data || $json.body?.data || {} }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "workflow_id",
+              "value": "={{ $json.input?.workflow_id || $json.body?.input?.workflow_id || $json.body?.workflow_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3b86bad-d9e0-4c15-9598-c1448bc3208f",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-cache",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "check_cache",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "upsert-cache",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "upsert_cache",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "log-director",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "log_director",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d54d7af8-1f50-45d9-8ba7-78e80ce58013",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "neural_interaction_cache",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "composite_hash",
+              "keyValue": "={{ $('Parse Input').item.json.composite_hash }}"
+            }
+          ]
+        }
+      },
+      "id": "e5cfc338-6c18-492c-b6ae-4b02960344b9",
+      "name": "Check Cache",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        16
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert"
+      },
+      "id": "89d173be-750b-4646-88b9-57c25b2add2e",
+      "name": "Upsert Cache",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        176
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "neural_director_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "workflow_id",
+              "fieldValue": "={{ $('Parse Input').item.json.workflow_id }}"
+            },
+            {
+              "fieldId": "assigned_path",
+              "fieldValue": "={{ $('Parse Input').item.json.data.assigned_path }}"
+            },
+            {
+              "fieldId": "execution_time_ms",
+              "fieldValue": "={{ $('Parse Input').item.json.data.execution_time_ms }}"
+            },
+            {
+              "fieldId": "composite_hash",
+              "fieldValue": "={{ $('Parse Input').item.json.composite_hash }}"
+            }
+          ]
+        }
+      },
+      "id": "3de1542d-f32b-4ab0-a414-28b2a98282ed",
+      "name": "Log to Director",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        336
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4fea00c4-f29d-4e92-9c75-29b620bc5629",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "path": "5641be5e-a049-460f-95e9-5fc34ccc6f55",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -768,
+        -48
+      ],
+      "id": "452141d5-54a0-4388-9934-5954eaed861c",
+      "name": "Webhook",
+      "webhookId": "5641be5e-a049-460f-95e9-5fc34ccc6f55",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: 5641be5e-a049-460f-95e9-5fc34ccc6f55\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhook5641be5e-a049-460f-95e9-5fc34ccc6f55\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-AI-CACHE PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-ai-cache.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-tg41lodie",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Check Cache",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Cache": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Cache": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Director": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "97cfd479-54d0-4ec5-928c-cbdbc8ed9264",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_AI_CACHE",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_ai_cache\n\nDESCRIPTION:\nManages AI output caching for deduplication. Supports checking if a hash exists\nand upserting cached AI responses to avoid redundant processing.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"check_cache\", \"upsert_cache\", \"log_director\"],\n      \"description\": \"Action to perform\"\n    },\n    \"composite_hash\": {\n      \"type\": \"string\",\n      \"description\": \"Hash of input data for cache lookup\"\n    },\n    \"data\": {\n      \"type\": \"object\",\n      \"description\": \"AI output data to cache\"\n    },\n    \"workflow_id\": {\n      \"type\": \"string\",\n      \"description\": \"Workflow identifier for cache grouping\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

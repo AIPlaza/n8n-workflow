@@ -1,0 +1,312 @@
+{
+  "name": "ms-supabase-summaries",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"input\": {\n    \"action\": \"check_cache\",\n    \"candidate_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"summary_data\": { \"text\": \"Highly qualified...\" }\n  }\n}"
+      },
+      "id": "9a737ae5-9223-417f-b8c0-3ad22c911ede",
+      "name": "When Called by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "action",
+              "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "candidate_id",
+              "value": "={{ $json.input?.candidate_id || $json.body?.input?.candidate_id || $json.body?.candidate_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "summary_data",
+              "value": "={{ $json.input?.summary_data || $json.body?.input?.summary_data || $json.body?.summary_data || {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b41c4803-b3d6-44b9-9ade-39e7a5761c70",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1344,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-cache",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "check_cache",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5143a8cd-44a9-40f9-8666-a91f10516680",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidate_summaries",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidate_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            }
+          ]
+        }
+      },
+      "id": "8b93d16c-8322-495c-badb-0de1b59992ed",
+      "name": "Check Cache",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        48
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "candidate_summaries",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidate_id",
+              "fieldValue": "={{ $('Parse Input').item.json.candidate_id }}"
+            },
+            {
+              "fieldId": "summary_json",
+              "fieldValue": "={{ $('Parse Input').item.json.summary_data }}"
+            },
+            {
+              "fieldId": "generated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "0c5834c0-e689-4d13-a2d7-d1199176755c",
+      "name": "Store Summary",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        272
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "PeABjwxLwE7hT4Xt",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "action",
+              "value": "={{ $('Parse Input').item.json.action }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "result",
+              "value": "={{ $json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "969bbd6e-6e62-4940-ac01-3f7073496954",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "path": "bfa5f536-dc07-4ea0-a907-c5b95c0c865e",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1600,
+        -48
+      ],
+      "id": "aaf3d3a5-74d2-491d-9c62-7e67f9cae03b",
+      "name": "Webhook",
+      "webhookId": "bfa5f536-dc07-4ea0-a907-c5b95c0c865e",
+      "notes": "🌐 WEBHOOK ENDPOINT\n\nPath: bfa5f536-dc07-4ea0-a907-c5b95c0c865e\nMethod: POST\n\n📍 Production URL:\nhttps://recruiter-app.app.n8n.cloud/webhookbfa5f536-dc07-4ea0-a907-c5b95c0c865e\n\n🔐 Security:\nConfigure authentication in production settings\n\n📝 Testing:\nUse webhook test URL during development"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 MS-SUPABASE-SUMMARIES PROCEDURE\n\n### What is this?\nAutomated procedure for ms-supabase-summaries.\n\n### Protocol Implementation:\n1. **Initiation**: Triggered via When Called by Another Workflow.\n2. **Contextualization**: Input data is standardized in the configuration layer.\n3. **Execution Phase**: Business logic is processed node-by-node.\n4. **Data Stewardship**: State is preserved via microservice persistence.\n\n### Deterministic Service Mapping:\n• No external microservice calls detected.\n\n### Deployment Note:\nEnsure all referenced sub-workflows are published and credentials (SMTP/AI) are valid.",
+        "height": 550,
+        "width": 500,
+        "color": 3
+      },
+      "id": "sticky-k91pktdb3",
+      "name": "Documentation Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        -450
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Check Cache",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Cache": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Summary": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "138d3536-8f3f-43d1-8d71-c4efefe2d541",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+  },
+  "id": "PLACEHOLDER_MS_SUPABASE_SUMMARIES",
+  "tags": [],
+  "description": "TOOL NAME: ms_supabase_summaries\n\nDESCRIPTION:\nCaches AI-generated candidate summaries. Supports checking for existing\nsummaries and storing new ones to avoid redundant AI calls.\n\nINPUT SCHEMA:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\"check_cache\", \"store_summary\"],\n      \"description\": \"Action to perform\"\n    },\n    \"candidate_id\": {\n      \"type\": \"string\",\n      \"format\": \"uuid\",\n      \"description\": \"Candidate UUID\"\n    },\n    \"summary_data\": {\n      \"type\": \"object\",\n      \"description\": \"AI-generated summary content\"\n    }\n  },\n  \"required\": [\"action\"]\n}"
+}

@@ -1,0 +1,237 @@
+{
+    "name": "ms-supabase-notifications",
+    "nodes": [
+        {
+            "parameters": {
+                "inputSource": "jsonExample",
+                "jsonExample": "{\n  \"input\": {\n    \"action\": \"create\",\n    \"recipient_id\": \"user_123\",\n    \"type\": \"status_change\",\n    \"title\": \"Application Update\",\n    \"message\": \"Your application has moved to Screening\",\n    \"link\": \"/applications/123\",\n    \"metadata\": { \"candidate_id\": \"456\" }\n  }\n}"
+            },
+            "id": "7a8b9c0d-1e2f-4a3b-5c6d-7e8f9a0b1c2d",
+            "name": "When Called by Another Workflow",
+            "type": "n8n-nodes-base.executeWorkflowTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                -380,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "id-1",
+                            "name": "action",
+                            "value": "={{ $json.input?.action || $json.body?.input?.action || $json.body?.action || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-2",
+                            "name": "recipient_id",
+                            "value": "={{ $json.input?.recipient_id || $json.body?.input?.recipient_id || $json.body?.recipient_id || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-3",
+                            "name": "type",
+                            "value": "={{ $json.input?.type || $json.body?.input?.type || $json.body?.type || 'general' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-4",
+                            "name": "title",
+                            "value": "={{ $json.input?.title || $json.body?.input?.title || $json.body?.title || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-5",
+                            "name": "message",
+                            "value": "={{ $json.input?.message || $json.body?.input?.message || $json.body?.message || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-6",
+                            "name": "link",
+                            "value": "={{ $json.input?.link || $json.body?.input?.link || $json.body?.link || '' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "id-7",
+                            "name": "metadata",
+                            "value": "={{ $json.input?.metadata || $json.body?.input?.metadata || $json.body?.metadata || {} }}",
+                            "type": "object"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "c3d4e5f6-7a8b-9c0d-1e2f-4a3b5c6d7e8f",
+            "name": "Parse Input",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                -160,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "create",
+                            "leftValue": "={{ $json.action }}",
+                            "rightValue": "create",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "f5g6h7i8-j9k0-l1m2-n3o4-p5q6r7s8t9u0",
+            "name": "Route: Create?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                60,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "tableId": "notifications",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "recipient_id",
+                            "fieldValue": "={{ $json.recipient_id }}"
+                        },
+                        {
+                            "fieldId": "type",
+                            "fieldValue": "={{ $json.type }}"
+                        },
+                        {
+                            "fieldId": "title",
+                            "fieldValue": "={{ $json.title }}"
+                        },
+                        {
+                            "fieldId": "message",
+                            "fieldValue": "={{ $json.message }}"
+                        },
+                        {
+                            "fieldId": "link",
+                            "fieldValue": "={{ $json.link }}"
+                        },
+                        {
+                            "fieldId": "metadata",
+                            "fieldValue": "={{ JSON.stringify($json.metadata) }}"
+                        },
+                        {
+                            "fieldId": "read",
+                            "fieldValue": "false"
+                        },
+                        {
+                            "fieldId": "created_at",
+                            "fieldValue": "={{ $now.toISO() }}"
+                        }
+                    ]
+                }
+            },
+            "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+            "name": "Create Notification",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                280,
+                140
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "PeABjwxLwE7hT4Xt",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "path": "notify-webhook",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -380,
+                60
+            ],
+            "id": "d027382b-8a1c-4b36-a517-76b6c2f34e91",
+            "name": "Webhook",
+            "webhookId": "d027382b-8a1c-4b36-a517-76b6c2f34e91"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "When Called by Another Workflow": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Input",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Input": {
+            "main": [
+                [
+                    {
+                        "node": "Route: Create?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route: Create?": {
+            "main": [
+                [
+                    {
+                        "node": "Create Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Input",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "pZ97C3C1VudCQnMhfMW37",
+    "id": "pZ97C3C1VudCQnMhfMW37",
+    "meta": {
+        "instanceId": "b92afa9d95eb3ea391c2f4ee276237a2857fb9f047e87e7f925c254aa94dc31b"
+    },
+    "tags": []
+}
